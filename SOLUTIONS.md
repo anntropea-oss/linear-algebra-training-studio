@@ -77,3 +77,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: The sequential `git pull --ff-only` fast-forwarded local `main` to the merged PR commit.
+
+## [2026-06-06 17:54] Merged PR Did Not Auto-Close Issues
+- Problem: PR #7 merged successfully, but GitHub left issues #1 through #6 open even though the PR body included closing keywords.
+- Root Cause: Unknown; GitHub did not apply the expected automatic issue-closing behavior after the merge.
+- Solution: Closed issues #1 through #6 manually with comments linking each issue to merged PR #7.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `gh issue close` succeeded for issues #1, #2, #3, #4, #5, and #6.
