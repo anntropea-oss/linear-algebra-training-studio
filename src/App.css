@@ -217,10 +217,15 @@
 }
 
 .analytics-grid,
-.records-grid {
+.records-grid,
+.insight-grid {
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.insight-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .assignment-grid {
@@ -328,6 +333,133 @@
 .problem-list p {
   color: #49534f;
   margin-top: 6px;
+}
+
+.problem-list small,
+.submission-workbench small {
+  color: #68746f;
+  display: block;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.diagnostic-score {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.diagnostic-score strong {
+  font-size: 2rem;
+}
+
+.diagnostic-score span,
+.diagnostic-columns span,
+.analytics-kpis span,
+.misconception-list span,
+.rubric-list span {
+  color: #68746f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.diagnostic-columns,
+.analytics-kpis,
+.submission-controls {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.diagnostic-columns div,
+.analytics-kpis div {
+  background: #f8faf9;
+  border: 1px solid #e1e8e6;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.diagnostic-columns strong,
+.analytics-kpis strong {
+  font-size: 1.22rem;
+}
+
+.next-step-list {
+  color: #49534f;
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding-left: 18px;
+}
+
+.misconception-list,
+.rubric-list {
+  display: grid;
+  gap: 10px;
+}
+
+.misconception-list div,
+.rubric-list div {
+  background: #f8faf9;
+  border: 1px solid #e1e8e6;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.rubric-note {
+  color: #49534f;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.submission-workbench {
+  background: #f8faf9;
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px;
+}
+
+.submission-workbench h4 {
+  color: #17211f;
+  font-size: 1rem;
+  margin-top: 3px;
+}
+
+.submission-workbench p {
+  color: #49534f;
+  margin-top: 6px;
+}
+
+.submission-controls label {
+  color: #49534f;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 5px;
+}
+
+.submission-controls input {
+  background: #ffffff;
+  border: 1px solid #ccd7d4;
+  border-radius: 8px;
+  color: #17211f;
+  min-height: 38px;
+  padding: 0 9px;
+  width: 100%;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .practice-panel {
@@ -520,6 +652,7 @@ textarea {
 
   .workspace-header,
   .analytics-grid,
+  .insight-grid,
   .assignment-grid,
   .records-grid {
     grid-template-columns: 1fr;

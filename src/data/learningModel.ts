@@ -1,3 +1,17 @@
+import {
+  defaultMisconceptionBySkill,
+  getMisconceptionCategory,
+  getRubric,
+  misconceptionTaxonomy,
+  rubricBySkill,
+} from './pedagogy'
+import type {
+  EvidenceMode,
+  MisconceptionCategoryId,
+  RubricId,
+  TransferType,
+} from './pedagogy'
+
 export const stageOrder = [
   'Orientation',
   'Systems',
@@ -18,6 +32,8 @@ export type ActivityType =
   | 'practice'
   | 'mistake'
   | 'download'
+  | 'submission'
+  | 'reset'
 
 export type LearnerSkillState = {
   mastery: number
@@ -42,11 +58,13 @@ export type MistakeEvent = {
   id: string
   date: string
   skillId: SkillId
+  categoryId: MisconceptionCategoryId
   problem: string
   misconception: string
   learnerAnswer: string
   correction: string
   severity: 'light' | 'medium' | 'heavy'
+  status: 'open' | 'resolved'
 }
 
 export type ActivityEvent = {
@@ -59,12 +77,18 @@ export type ActivityEvent = {
 
 export type AssignmentProblem = {
   id: string
+  templateId: string
   skillId: SkillId
   prompt: string
   hint: string
   solution: string
   difficulty: number
   checksFor: string
+  misconceptionCategoryId: MisconceptionCategoryId
+  evidenceMode: EvidenceMode
+  transferType: TransferType
+  rubricId: RubricId
+  estimatedMinutes: number
 }
 
 export type Assignment = {
@@ -77,6 +101,23 @@ export type Assignment = {
   problems: AssignmentProblem[]
   coachingNotes: string[]
   estimatedMinutes: number
+}
+
+export type AttemptRecord = {
+  id: string
+  assignmentId: string
+  problemId: string
+  skillId: SkillId
+  submittedAt: string
+  submittedAnswer: string
+  score: number
+  maxScore: number
+  outcome: Outcome
+  confidenceBefore: number
+  confidenceAfter: number
+  hintsUsed: number
+  misconceptionCategoryId: MisconceptionCategoryId
+  feedback: string
 }
 
 export type Learner = {
@@ -92,15 +133,26 @@ export type Learner = {
   skills: Record<SkillId, LearnerSkillState>
   mistakeLog: MistakeEvent[]
   activityLog: ActivityEvent[]
+  attemptLog: AttemptRecord[]
 }
 
 type ProblemTemplate = {
+  id?: string
+  title?: string
   prompt: string
   hint: string
   solution: string
   difficulty: number
   checksFor: string
+  misconceptionCategoryId?: MisconceptionCategoryId
+  evidenceMode?: EvidenceMode
+  transferType?: TransferType
+  rubricId?: RubricId
+  estimatedMinutes?: number
+  active?: boolean
 }
+
+type VerifiedProblemTemplate = Required<ProblemTemplate>
 
 const todayIso = () => new Date().toISOString()
 
@@ -637,6 +689,55 @@ const problemBank: Record<SkillId, ProblemTemplate[]> = {
   ],
 }
 
+const evidenceModeForDifficulty = (difficulty: number): EvidenceMode => {
+  if (difficulty >= 3) return 'transfer'
+  if (difficulty === 2) return 'justify'
+  return 'compute'
+}
+
+const transferTypeForTemplate = (
+  difficulty: number,
+  index: number,
+): TransferType => {
+  if (difficulty >= 3) return 'mixed-transfer'
+  if (index === 0) return 'prerequisite-repair'
+  if (index === 1) return 'direct-practice'
+  return 'spaced-review'
+}
+
+const normalizeTemplate = (
+  skillId: SkillId,
+  template: ProblemTemplate,
+  index: number,
+): VerifiedProblemTemplate => ({
+  id: template.id ?? `tpl-${skillId}-${index + 1}`,
+  title:
+    template.title ??
+    `${skillCatalog.find((skill) => skill.id === skillId)?.name ?? skillId} template ${
+      index + 1
+    }`,
+  prompt: template.prompt,
+  hint: template.hint,
+  solution: template.solution,
+  difficulty: template.difficulty,
+  checksFor: template.checksFor,
+  misconceptionCategoryId:
+    template.misconceptionCategoryId ?? defaultMisconceptionBySkill[skillId],
+  evidenceMode: template.evidenceMode ?? evidenceModeForDifficulty(template.difficulty),
+  transferType:
+    template.transferType ?? transferTypeForTemplate(template.difficulty, index),
+  rubricId: template.rubricId ?? rubricBySkill[skillId],
+  estimatedMinutes: template.estimatedMinutes ?? 6 + template.difficulty * 2,
+  active: template.active ?? true,
+})
+
+export const verifiedProblemTemplates = Object.fromEntries(
+  Object.entries(problemBank).map(([skillId, templates]) => [
+    skillId,
+    templates.map((template, index) => normalizeTemplate(skillId, template, index)),
+  ]),
+) as Record<SkillId, VerifiedProblemTemplate[]>
+
 const baseSkillState = (
   mastery: number,
   confidence: number,
@@ -674,15 +775,18 @@ const mistake = (
   misconception: string,
   correction: string,
   severity: MistakeEvent['severity'],
+  categoryId = defaultMisconceptionBySkill[skillId],
 ): MistakeEvent => ({
   id: `M-${learner}-${shortId(`${skillId}-${problem}-${daysBack}`)}`,
   date: daysAgo(daysBack),
   skillId,
+  categoryId,
   problem,
   misconception,
   learnerAnswer: 'See instructor review notes.',
   correction,
   severity,
+  status: 'open',
 })
 
 const activity = (
@@ -697,6 +801,32 @@ const activity = (
   type,
   title,
   detail,
+})
+
+const attempt = (
+  learner: string,
+  assignmentId: string,
+  problemId: string,
+  skillId: SkillId,
+  daysBack: number,
+  score: number,
+  submittedAnswer: string,
+  feedback: string,
+): AttemptRecord => ({
+  id: `T-${learner}-${shortId(`${assignmentId}-${problemId}-${daysBack}`)}`,
+  assignmentId,
+  problemId,
+  skillId,
+  submittedAt: daysAgo(daysBack),
+  submittedAnswer,
+  score,
+  maxScore: 5,
+  outcome: score >= 4 ? 'correct' : 'mistake',
+  confidenceBefore: Math.max(10, score * 15),
+  confidenceAfter: Math.min(95, score * 18),
+  hintsUsed: score >= 4 ? 0 : 1,
+  misconceptionCategoryId: defaultMisconceptionBySkill[skillId],
+  feedback,
 })
 
 export const initialLearners: Learner[] = [
@@ -751,6 +881,28 @@ export const initialLearners: Learner[] = [
       activity('mina', 'practice', 3, 'Systems practice', 'Improved sign handling across 6 problems.'),
       activity('mina', 'mistake', 1, 'Independence review', 'Needs redundancy checks before declaring independence.'),
     ],
+    attemptLog: [
+      attempt(
+        'mina',
+        'seed-foundations',
+        'seed-foundations-p1',
+        'systems',
+        3,
+        4,
+        'x = 4, y = 2',
+        'Correct solution with improved sign handling.',
+      ),
+      attempt(
+        'mina',
+        'seed-foundations',
+        'seed-foundations-p2',
+        'row-reduction',
+        4,
+        2,
+        'Changed one row by adding columns.',
+        'Needs review of legal row operations.',
+      ),
+    ],
   },
   {
     id: 'theo',
@@ -803,6 +955,28 @@ export const initialLearners: Learner[] = [
       activity('theo', 'assignment', 5, 'Structure set assigned', 'Focused on basis, dimension, and subspaces.'),
       activity('theo', 'practice', 2, 'Basis repair', 'Removed redundant spanning vectors in 4 of 5 attempts.'),
     ],
+    attemptLog: [
+      attempt(
+        'theo',
+        'seed-structure',
+        'seed-structure-p1',
+        'basis-dimension',
+        2,
+        3,
+        'A basis is all three listed vectors.',
+        'Correct span idea, but redundancy was not removed.',
+      ),
+      attempt(
+        'theo',
+        'seed-structure',
+        'seed-structure-p2',
+        'subspaces',
+        5,
+        4,
+        'Contains zero and is closed under addition and scaling.',
+        'Good subspace-test reasoning.',
+      ),
+    ],
   },
   {
     id: 'iris',
@@ -854,6 +1028,28 @@ export const initialLearners: Learner[] = [
       activity('iris', 'diagnostic', 21, 'Diagnostic completed', 'Placed into Spectral track with advanced transformation fluency.'),
       activity('iris', 'assignment', 8, 'Eigen set assigned', 'Focused on eigenspaces and diagonalization checks.'),
       activity('iris', 'mistake', 3, 'Eigenspace correction', 'Needs independent eigenvector checks after repeated eigenvalues.'),
+    ],
+    attemptLog: [
+      attempt(
+        'iris',
+        'seed-spectral',
+        'seed-spectral-p1',
+        'eigen',
+        3,
+        3,
+        'Repeated eigenvalue means two eigenvectors.',
+        'Needs eigenspace-dimension check after repeated eigenvalues.',
+      ),
+      attempt(
+        'iris',
+        'seed-spectral',
+        'seed-spectral-p2',
+        'diagonalization',
+        7,
+        2,
+        'Every matrix with eigenvalues can be diagonalized.',
+        'Overgeneralization: diagonalization needs an eigenbasis.',
+      ),
     ],
   },
 ]
@@ -910,9 +1106,10 @@ const templateForSkill = (
   desiredDifficulty: number,
   seed: string,
 ) => {
-  const templates = problemBank[skillId] ?? problemBank['vec-combinations']
+  const templates =
+    verifiedProblemTemplates[skillId] ?? verifiedProblemTemplates['vec-combinations']
   const candidates = templates.filter(
-    (template) => template.difficulty <= desiredDifficulty,
+    (template) => template.active && template.difficulty <= desiredDifficulty,
   )
   const usable = candidates.length > 0 ? candidates : templates
   return usable[Number.parseInt(shortId(seed), 36) % usable.length]
@@ -964,11 +1161,13 @@ export const generateAssignment = (
       {
         ...first,
         id: `P-${shortId(`${requestedAt}-${skillId}-1`)}`,
+        templateId: first.id,
         skillId,
       },
       {
         ...second,
         id: `P-${shortId(`${requestedAt}-${secondSkill}-2`)}`,
+        templateId: second.id,
         skillId: secondSkill,
       },
     ]
@@ -989,9 +1188,15 @@ export const generateAssignment = (
     coachingNotes: focusSkillIds.map((skillId) => {
       const skill = getSkill(skillId)
       const state = learner.skills[skillId]
-      return `${skill.name}: target ${skill.masteryGoal.toLowerCase()} Current mastery ${state.mastery}%.`
+      const category = getMisconceptionCategory(defaultMisconceptionBySkill[skillId])
+      return `${skill.name}: target ${skill.masteryGoal.toLowerCase()} Current mastery ${state.mastery}%. Watch for ${category.label.toLowerCase()}.`
     }),
-    estimatedMinutes: 12 + uniqueProblems.length * 7,
+    estimatedMinutes:
+      8 +
+      uniqueProblems.reduce(
+        (total, problem) => total + problem.estimatedMinutes,
+        0,
+      ),
   }
 }
 
@@ -1029,11 +1234,13 @@ export const recordPracticeResult = (
         id: `M-${shortId(idSeed)}`,
         date: todayIso(),
         skillId,
+        categoryId: defaultMisconceptionBySkill[skillId],
         problem: `Practice check for ${skill.name}`,
         misconception: skill.misconceptions[0],
         learnerAnswer: note.trim() || 'No learner answer recorded.',
         correction: `Review: ${skill.masteryGoal}`,
         severity: previous.mastery < 40 ? 'heavy' : 'medium',
+        status: 'open',
       }
 
   return {
@@ -1047,6 +1254,357 @@ export const recordPracticeResult = (
       ? [mistakeEntry, ...learner.mistakeLog].slice(0, 12)
       : learner.mistakeLog,
     activityLog: [activityEntry, ...learner.activityLog].slice(0, 16),
+  }
+}
+
+const solutionKeywords = (solution: string) =>
+  solution
+    .toLowerCase()
+    .replace(/[^a-z0-9/ -]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 || /^-?\d/.test(token))
+
+const scoreSubmittedAnswer = (answer: string, solution: string, hintsUsed: number) => {
+  const normalizedAnswer = answer.toLowerCase()
+  const keywords = Array.from(new Set(solutionKeywords(solution))).slice(0, 8)
+  const matches = keywords.filter((keyword) => normalizedAnswer.includes(keyword))
+  const rawScore =
+    answer.trim().length < 8
+      ? 1
+      : Math.min(5, 2 + matches.length - Math.min(2, hintsUsed))
+  return clamp(rawScore, 0, 5)
+}
+
+export const recordAssignmentAttempt = (
+  learner: Learner,
+  assignment: Assignment,
+  problemId: string,
+  submittedAnswer: string,
+  confidenceBefore: number,
+  confidenceAfter: number,
+  hintsUsed: number,
+): Learner => {
+  const problem =
+    assignment.problems.find((candidate) => candidate.id === problemId) ??
+    assignment.problems[0]
+  const skill = getSkill(problem.skillId)
+  const previous = learner.skills[problem.skillId]
+  const score = scoreSubmittedAnswer(submittedAnswer, problem.solution, hintsUsed)
+  const correct = score >= 4
+  const nextSkillState: LearnerSkillState = {
+    mastery: clamp(previous.mastery + (correct ? 4 : -4 + score)),
+    confidence: clamp(
+      Math.round((previous.confidence + confidenceAfter) / 2) + (correct ? 2 : -3),
+    ),
+    attempts: previous.attempts + 1,
+    lastPracticed: todayIso(),
+    trend: correct ? 1 : -1,
+  }
+  const feedback = correct
+    ? `Strong evidence for ${skill.name}. Rubric: ${getRubric(problem.rubricId).name}.`
+    : `Needs correction: ${getMisconceptionCategory(
+        problem.misconceptionCategoryId,
+      ).label.toLowerCase()}. Review ${skill.masteryGoal.toLowerCase()}`
+  const idSeed = `${learner.id}-${assignment.id}-${problem.id}-${Date.now()}`
+  const attemptEntry: AttemptRecord = {
+    id: `T-${shortId(idSeed)}`,
+    assignmentId: assignment.id,
+    problemId: problem.id,
+    skillId: problem.skillId,
+    submittedAt: todayIso(),
+    submittedAnswer: submittedAnswer.trim() || 'No answer submitted.',
+    score,
+    maxScore: 5,
+    outcome: correct ? 'correct' : 'mistake',
+    confidenceBefore,
+    confidenceAfter,
+    hintsUsed,
+    misconceptionCategoryId: problem.misconceptionCategoryId,
+    feedback,
+  }
+  const activityEntry: ActivityEvent = {
+    id: `A-${shortId(`${idSeed}-activity`)}`,
+    date: todayIso(),
+    type: 'submission',
+    title: correct ? 'Assignment response submitted' : 'Correction needed',
+    detail: `${skill.name}: ${score}/5. ${feedback}`,
+  }
+  const mistakeEntry: MistakeEvent | null = correct
+    ? null
+    : {
+        id: `M-${shortId(`${idSeed}-mistake`)}`,
+        date: todayIso(),
+        skillId: problem.skillId,
+        categoryId: problem.misconceptionCategoryId,
+        problem: problem.prompt,
+        misconception: getMisconceptionCategory(problem.misconceptionCategoryId).label,
+        learnerAnswer: submittedAnswer.trim() || 'No answer submitted.',
+        correction: feedback,
+        severity: score <= 2 ? 'heavy' : 'medium',
+        status: 'open',
+      }
+
+  return {
+    ...learner,
+    minutesThisWeek: learner.minutesThisWeek + Math.max(4, problem.estimatedMinutes),
+    skills: {
+      ...learner.skills,
+      [problem.skillId]: nextSkillState,
+    },
+    attemptLog: [attemptEntry, ...learner.attemptLog].slice(0, 24),
+    mistakeLog: mistakeEntry
+      ? [mistakeEntry, ...learner.mistakeLog].slice(0, 16)
+      : learner.mistakeLog,
+    activityLog: [activityEntry, ...learner.activityLog].slice(0, 20),
+  }
+}
+
+export type DiagnosticItem = {
+  id: string
+  skillId: SkillId
+  prompt: string
+  expectedEvidence: string
+  categoryId: MisconceptionCategoryId
+  rubricId: RubricId
+  difficulty: number
+}
+
+export type DiagnosticSkillResult = {
+  skillId: SkillId
+  skillName: string
+  mastery: number
+  confidence: number
+  readiness: number
+  status: 'ready' | 'review' | 'repair'
+  prompt: string
+  expectedEvidence: string
+}
+
+export type DiagnosticReport = {
+  learnerId: string
+  score: number
+  placement: string
+  generatedAt: string
+  readySkills: DiagnosticSkillResult[]
+  reviewSkills: DiagnosticSkillResult[]
+  repairSkills: DiagnosticSkillResult[]
+  nextSteps: string[]
+}
+
+export const diagnosticItems: DiagnosticItem[] = skillCatalog.map((skill) => ({
+  id: `diag-${skill.id}`,
+  skillId: skill.id,
+  prompt: skill.diagnosticPrompt,
+  expectedEvidence: skill.masteryGoal,
+  categoryId: defaultMisconceptionBySkill[skill.id],
+  rubricId: rubricBySkill[skill.id],
+  difficulty: skill.level,
+}))
+
+const diagnosticPlacement = (score: number) => {
+  if (score >= 78) return 'Spectral readiness'
+  if (score >= 60) return 'Bridge readiness'
+  if (score >= 42) return 'Foundations readiness'
+  return 'Repair-first readiness'
+}
+
+export const buildDiagnosticReport = (
+  learner: Learner,
+  generatedAt = todayIso(),
+): DiagnosticReport => {
+  const skillResults = diagnosticItems.map((item) => {
+    const state = learner.skills[item.skillId]
+    const readiness = clamp(
+      state.mastery * 0.7 +
+        state.confidence * 0.22 -
+        reviewDebt(state.lastPracticed) * 0.7,
+    )
+    const status =
+      readiness >= 70 ? 'ready' : readiness >= 45 ? 'review' : 'repair'
+    return {
+      skillId: item.skillId,
+      skillName: getSkill(item.skillId).name,
+      mastery: state.mastery,
+      confidence: state.confidence,
+      readiness,
+      status,
+      prompt: item.prompt,
+      expectedEvidence: item.expectedEvidence,
+    } satisfies DiagnosticSkillResult
+  })
+  const score = Math.round(
+    skillResults.reduce((total, result) => total + result.readiness, 0) /
+      skillResults.length,
+  )
+  const repairSkills = skillResults
+    .filter((result) => result.status === 'repair')
+    .sort((left, right) => left.readiness - right.readiness)
+  const reviewSkills = skillResults
+    .filter((result) => result.status === 'review')
+    .sort((left, right) => left.readiness - right.readiness)
+  const readySkills = skillResults
+    .filter((result) => result.status === 'ready')
+    .sort((left, right) => right.readiness - left.readiness)
+  const nextSteps = [...repairSkills, ...reviewSkills].slice(0, 4).map((result) => {
+    const category = getMisconceptionCategory(
+      defaultMisconceptionBySkill[result.skillId],
+    )
+    return `${result.skillName}: use ${category.intervention.toLowerCase()}`
+  })
+
+  return {
+    learnerId: learner.id,
+    score,
+    placement: diagnosticPlacement(score),
+    generatedAt,
+    readySkills,
+    reviewSkills,
+    repairSkills,
+    nextSteps,
+  }
+}
+
+export const applyDiagnosticCheckpoint = (
+  learner: Learner,
+  generatedAt = todayIso(),
+): Learner => {
+  const report = buildDiagnosticReport(learner, generatedAt)
+  const updatedSkills = Object.fromEntries(
+    skillCatalog.map((skill) => {
+      const state = learner.skills[skill.id]
+      const result =
+        report.readySkills.find((item) => item.skillId === skill.id) ??
+        report.reviewSkills.find((item) => item.skillId === skill.id) ??
+        report.repairSkills.find((item) => item.skillId === skill.id)
+      const confidenceAdjustment =
+        result?.status === 'ready' ? 2 : result?.status === 'repair' ? -2 : 0
+      return [
+        skill.id,
+        {
+          ...state,
+          confidence: clamp(state.confidence + confidenceAdjustment),
+          lastPracticed: generatedAt,
+        },
+      ]
+    }),
+  ) as Record<SkillId, LearnerSkillState>
+  const activityEntry: ActivityEvent = {
+    id: `A-${shortId(`${learner.id}-diagnostic-${generatedAt}`)}`,
+    date: generatedAt,
+    type: 'diagnostic',
+    title: 'Diagnostic checkpoint recorded',
+    detail: `${report.placement} at ${report.score}%. ${report.nextSteps[0] ?? 'No repair priority.'}`,
+  }
+
+  return {
+    ...learner,
+    diagnosticScore: report.score,
+    levelName: report.placement,
+    skills: updatedSkills,
+    activityLog: [activityEntry, ...learner.activityLog].slice(0, 20),
+  }
+}
+
+export type CohortAnalytics = {
+  learnerCount: number
+  averageMastery: number
+  averageDiagnostic: number
+  reviewQueueCount: number
+  openMistakeCount: number
+  attemptCount: number
+  commonMisconceptions: Array<{
+    categoryId: MisconceptionCategoryId
+    label: string
+    count: number
+  }>
+  stageAverages: Array<{
+    stage: Stage
+    mastery: number
+    confidence: number
+  }>
+}
+
+export const buildCohortAnalytics = (learners: Learner[]): CohortAnalytics => {
+  const learnerCount = learners.length
+  const stageAverages = stageOrder.map((stage) => {
+    const stageSkills = skillCatalog.filter((skill) => skill.stage === stage)
+    const mastery =
+      learners.reduce(
+        (learnerTotal, learner) =>
+          learnerTotal +
+          stageSkills.reduce(
+            (skillTotal, skill) => skillTotal + learner.skills[skill.id].mastery,
+            0,
+          ) /
+            stageSkills.length,
+        0,
+      ) / learnerCount
+    const confidence =
+      learners.reduce(
+        (learnerTotal, learner) =>
+          learnerTotal +
+          stageSkills.reduce(
+            (skillTotal, skill) =>
+              skillTotal + learner.skills[skill.id].confidence,
+            0,
+          ) /
+            stageSkills.length,
+        0,
+      ) / learnerCount
+    return {
+      stage,
+      mastery: Math.round(mastery),
+      confidence: Math.round(confidence),
+    }
+  })
+  const commonMisconceptions = misconceptionTaxonomy
+    .map((category) => ({
+      categoryId: category.id,
+      label: category.label,
+      count: learners.reduce(
+        (total, learner) =>
+          total +
+          learner.mistakeLog.filter(
+            (mistakeEntry) =>
+              mistakeEntry.categoryId === category.id &&
+              mistakeEntry.status === 'open',
+          ).length,
+        0,
+      ),
+    }))
+    .filter((item) => item.count > 0)
+    .sort((left, right) => right.count - left.count)
+
+  return {
+    learnerCount,
+    averageMastery: Math.round(
+      learners.reduce((total, currentLearner) => total + averageMastery(currentLearner), 0) /
+        learnerCount,
+    ),
+    averageDiagnostic: Math.round(
+      learners.reduce((total, currentLearner) => total + currentLearner.diagnosticScore, 0) /
+        learnerCount,
+    ),
+    reviewQueueCount: learners.reduce(
+      (total, currentLearner) =>
+        total +
+        skillCatalog.filter((skill) => currentLearner.skills[skill.id].mastery < 55)
+          .length,
+      0,
+    ),
+    openMistakeCount: learners.reduce(
+      (total, currentLearner) =>
+        total +
+        currentLearner.mistakeLog.filter((mistakeEntry) => mistakeEntry.status === 'open')
+          .length,
+      0,
+    ),
+    attemptCount: learners.reduce(
+      (total, currentLearner) => total + currentLearner.attemptLog.length,
+      0,
+    ),
+    commonMisconceptions,
+    stageAverages,
   }
 }
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   BookOpen,
@@ -11,6 +11,7 @@ import {
   LineChart,
   Plus,
   RotateCcw,
+  Save,
   Target,
   TriangleAlert,
   Users,
@@ -19,11 +20,15 @@ import './App.css'
 import {
   assignmentToHtml,
   averageMastery,
+  applyDiagnosticCheckpoint,
+  buildCohortAnalytics,
+  buildDiagnosticReport,
   generateAssignment,
   getSkill,
   initialLearners,
   logAssignment,
   logDownload,
+  recordAssignmentAttempt,
   recordPracticeResult,
   skillCatalog,
   stageMastery,
@@ -37,6 +42,12 @@ import type {
   Outcome,
   SkillId,
 } from './data/learningModel'
+import {
+  clearTrainingSnapshot,
+  loadTrainingSnapshot,
+  saveTrainingSnapshot,
+} from './data/persistence'
+import { getMisconceptionCategory, getRubric } from './data/pedagogy'
 
 const StageMasteryChart = lazy(() =>
   import('./components/Charts').then((module) => ({
@@ -59,9 +70,9 @@ type ProgressStyle = CSSProperties & {
   '--accent': string
 }
 
-const buildInitialAssignments = () =>
+const buildInitialAssignments = (learners = initialLearners) =>
   Object.fromEntries(
-    initialLearners.map((learner) => [learner.id, generateAssignment(learner)]),
+    learners.map((learner) => [learner.id, generateAssignment(learner)]),
   ) as Record<string, Assignment>
 
 const formatDate = (value: string) =>
@@ -89,6 +100,8 @@ const activityIcon = (type: ActivityType) => {
   if (type === 'mistake') return <TriangleAlert size={16} />
   if (type === 'download') return <Download size={16} />
   if (type === 'diagnostic') return <Gauge size={16} />
+  if (type === 'submission') return <Save size={16} />
+  if (type === 'reset') return <RotateCcw size={16} />
   return <CheckCircle2 size={16} />
 }
 
@@ -101,24 +114,39 @@ const shortSkillName = (name: string) =>
     .replace('Projections and least squares', 'Projections')
 
 const App = () => {
-  const [learners, setLearners] = useState<Learner[]>(initialLearners)
+  const initialSnapshot = useMemo(
+    () => loadTrainingSnapshot(initialLearners, buildInitialAssignments()),
+    [],
+  )
+  const [learners, setLearners] = useState<Learner[]>(initialSnapshot.learners)
   const [selectedLearnerId, setSelectedLearnerId] = useState(initialLearners[0].id)
   const [selectedSkillId, setSelectedSkillId] =
     useState<SkillId>('linear-independence')
   const [practiceNote, setPracticeNote] = useState('')
   const [assignments, setAssignments] = useState<Record<string, Assignment>>(
-    buildInitialAssignments,
+    initialSnapshot.assignments,
   )
+  const [submissionAnswer, setSubmissionAnswer] = useState('')
+  const [confidenceBefore, setConfidenceBefore] = useState(45)
+  const [confidenceAfter, setConfidenceAfter] = useState(55)
+  const [hintsUsed, setHintsUsed] = useState(0)
 
   const learner =
     learners.find((currentLearner) => currentLearner.id === selectedLearnerId) ??
     learners[0]
   const activeAssignment =
     assignments[learner.id] ?? generateAssignment(learner, new Date().toISOString())
+  const activeProblem = activeAssignment.problems[0]
   const mastery = averageMastery(learner)
   const stageData = useMemo(() => stageMastery(learner), [learner])
   const weakSkills = useMemo(() => weakestSkills(learner, 3), [learner])
   const selectedSkill = getSkill(selectedSkillId)
+  const diagnosticReport = useMemo(() => buildDiagnosticReport(learner), [learner])
+  const cohortAnalytics = useMemo(() => buildCohortAnalytics(learners), [learners])
+  const selectedRubric = getRubric(activeProblem.rubricId)
+  const selectedMisconception = getMisconceptionCategory(
+    activeProblem.misconceptionCategoryId,
+  )
   const weeklyPercent = Math.min(
     100,
     Math.round((learner.minutesThisWeek / learner.weeklyGoalMinutes) * 100),
@@ -137,6 +165,10 @@ const App = () => {
       name: formatDate(entry.date),
       score: Math.min(100, mastery - (6 - index) * 2 + index),
     }))
+
+  useEffect(() => {
+    saveTrainingSnapshot(learners, assignments)
+  }, [learners, assignments])
 
   const updateLearner = (nextLearner: Learner) => {
     setLearners((currentLearners) =>
@@ -172,6 +204,36 @@ const App = () => {
   const handlePracticeResult = (outcome: Outcome) => {
     updateLearner(recordPracticeResult(learner, selectedSkillId, outcome, practiceNote))
     setPracticeNote('')
+  }
+
+  const handleDiagnosticCheckpoint = () => {
+    updateLearner(applyDiagnosticCheckpoint(learner))
+  }
+
+  const handleSubmitAssignment = () => {
+    updateLearner(
+      recordAssignmentAttempt(
+        learner,
+        activeAssignment,
+        activeProblem.id,
+        submissionAnswer,
+        confidenceBefore,
+        confidenceAfter,
+        hintsUsed,
+      ),
+    )
+    setSubmissionAnswer('')
+    setConfidenceBefore(45)
+    setConfidenceAfter(55)
+    setHintsUsed(0)
+  }
+
+  const handleResetLocalRecords = () => {
+    clearTrainingSnapshot()
+    const fallbackAssignments = buildInitialAssignments(initialLearners)
+    setLearners(initialLearners)
+    setAssignments(fallbackAssignments)
+    setSelectedLearnerId(initialLearners[0].id)
   }
 
   return (
@@ -242,6 +304,10 @@ const App = () => {
             <p className="header-subtitle">{learner.levelName}</p>
           </div>
           <div className="header-actions">
+            <button type="button" onClick={handleDiagnosticCheckpoint}>
+              <Gauge size={18} />
+              Diagnostic
+            </button>
             <button type="button" onClick={handleGenerateAssignment}>
               <Plus size={18} />
               Generate
@@ -249,6 +315,10 @@ const App = () => {
             <button className="primary" type="button" onClick={handleDownload}>
               <Download size={18} />
               Download
+            </button>
+            <button type="button" onClick={handleResetLocalRecords}>
+              <RotateCcw size={18} />
+              Reset
             </button>
           </div>
         </header>
@@ -273,6 +343,94 @@ const App = () => {
             <TriangleAlert size={20} />
             <span>Review queue</span>
             <strong>{reviewCount}</strong>
+          </article>
+        </section>
+
+        <section className="insight-grid">
+          <article className="tool-panel diagnostic-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Diagnostic engine</p>
+                <h3>{diagnosticReport.placement}</h3>
+              </div>
+              <Gauge size={19} />
+            </div>
+            <div className="diagnostic-score">
+              <strong>{diagnosticReport.score}%</strong>
+              <span>placement evidence</span>
+            </div>
+            <div className="diagnostic-columns">
+              <div>
+                <span>Repair</span>
+                <strong>{diagnosticReport.repairSkills.length}</strong>
+              </div>
+              <div>
+                <span>Review</span>
+                <strong>{diagnosticReport.reviewSkills.length}</strong>
+              </div>
+              <div>
+                <span>Ready</span>
+                <strong>{diagnosticReport.readySkills.length}</strong>
+              </div>
+            </div>
+            <ul className="next-step-list">
+              {diagnosticReport.nextSteps.slice(0, 3).map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="tool-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Instructor analytics</p>
+                <h3>Cohort signals</h3>
+              </div>
+              <Users size={19} />
+            </div>
+            <div className="analytics-kpis">
+              <div>
+                <span>Avg mastery</span>
+                <strong>{cohortAnalytics.averageMastery}%</strong>
+              </div>
+              <div>
+                <span>Open mistakes</span>
+                <strong>{cohortAnalytics.openMistakeCount}</strong>
+              </div>
+              <div>
+                <span>Attempts</span>
+                <strong>{cohortAnalytics.attemptCount}</strong>
+              </div>
+            </div>
+            <div className="misconception-list">
+              {cohortAnalytics.commonMisconceptions.slice(0, 4).map((item) => (
+                <div key={item.categoryId}>
+                  <strong>{item.label}</strong>
+                  <span>{item.count} open</span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="tool-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Rubric</p>
+                <h3>{selectedRubric.name}</h3>
+              </div>
+              <Target size={19} />
+            </div>
+            <div className="rubric-list">
+              {selectedRubric.criteria.map((criterion) => (
+                <div key={criterion.id}>
+                  <strong>
+                    {criterion.label} ({criterion.points})
+                  </strong>
+                  <span>{criterion.evidence}</span>
+                </div>
+              ))}
+            </div>
+            <p className="rubric-note">{selectedRubric.partialCreditNotes}</p>
           </article>
         </section>
 
@@ -332,9 +490,83 @@ const App = () => {
                 <li key={problem.id}>
                   <strong>{getSkill(problem.skillId).name}</strong>
                   <p>{problem.prompt}</p>
+                  <small>
+                    {problem.transferType.replace('-', ' ')} |{' '}
+                    {getMisconceptionCategory(problem.misconceptionCategoryId).label}
+                  </small>
                 </li>
               ))}
             </ol>
+
+            <div className="submission-workbench">
+              <div>
+                <p className="eyebrow">Learner submission</p>
+                <h4>{getSkill(activeProblem.skillId).name}</h4>
+                <p>{activeProblem.prompt}</p>
+                <small>
+                  Hint focus: {activeProblem.hint} | Rubric: {selectedRubric.name}
+                </small>
+              </div>
+              <label className="field-label" htmlFor="submission-answer">
+                Answer
+              </label>
+              <textarea
+                id="submission-answer"
+                onChange={(event) => setSubmissionAnswer(event.target.value)}
+                placeholder="Type the learner response or paste submitted work."
+                value={submissionAnswer}
+              />
+              <div className="submission-controls">
+                <label htmlFor="confidence-before">
+                  Confidence before
+                  <input
+                    id="confidence-before"
+                    max="100"
+                    min="0"
+                    onChange={(event) =>
+                      setConfidenceBefore(Number(event.target.value))
+                    }
+                    type="number"
+                    value={confidenceBefore}
+                  />
+                </label>
+                <label htmlFor="confidence-after">
+                  Confidence after
+                  <input
+                    id="confidence-after"
+                    max="100"
+                    min="0"
+                    onChange={(event) => setConfidenceAfter(Number(event.target.value))}
+                    type="number"
+                    value={confidenceAfter}
+                  />
+                </label>
+                <label htmlFor="hints-used">
+                  Hints
+                  <input
+                    id="hints-used"
+                    max="5"
+                    min="0"
+                    onChange={(event) => setHintsUsed(Number(event.target.value))}
+                    type="number"
+                    value={hintsUsed}
+                  />
+                </label>
+              </div>
+              <button
+                className="primary"
+                disabled={submissionAnswer.trim().length === 0}
+                onClick={handleSubmitAssignment}
+                type="button"
+              >
+                <Save size={18} />
+                Submit evidence
+              </button>
+              <p className="rubric-note">
+                Watch for {selectedMisconception.label.toLowerCase()}:{' '}
+                {selectedMisconception.intervention}
+              </p>
+            </div>
           </article>
 
           <article className="tool-panel practice-panel">
@@ -456,8 +688,37 @@ const App = () => {
                   <span className={`severity ${entry.severity}`} />
                   <div>
                     <strong>{getSkill(entry.skillId).name}</strong>
-                    <p>{entry.misconception}</p>
+                    <p>
+                      {getMisconceptionCategory(entry.categoryId).label}:{' '}
+                      {entry.misconception}
+                    </p>
                     <small>{entry.correction}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="tool-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Attempts</p>
+                <h3>Submission evidence</h3>
+              </div>
+              <Save size={19} />
+            </div>
+            <div className="record-list">
+              {learner.attemptLog.slice(0, 5).map((entry) => (
+                <div className="record-row" key={entry.id}>
+                  <span className="event-icon">{activityIcon('submission')}</span>
+                  <div>
+                    <strong>
+                      {getSkill(entry.skillId).name} | {entry.score}/{entry.maxScore}
+                    </strong>
+                    <p>{entry.feedback}</p>
+                    <small>
+                      Confidence {entry.confidenceBefore}% to {entry.confidenceAfter}%
+                    </small>
                   </div>
                 </div>
               ))}
