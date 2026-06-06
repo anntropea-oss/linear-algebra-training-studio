@@ -69,3 +69,11 @@
 - Files Changed: `src/data/persistence.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm run build`, `npm run lint`, and `curl http://127.0.0.1:5173/` all completed successfully after the migration patch.
+
+## [2026-06-06 17:38] Parallel Git Pull And Fetch Ref Lock
+- Problem: Running `git pull --ff-only` and `git fetch --prune` in parallel caused `git pull` to fail with `cannot lock ref 'refs/remotes/origin/main'` because the remote-tracking ref changed during the pull.
+- Root Cause: The parallel fetch updated `origin/main` while the pull command still expected the previous ref value.
+- Solution: Re-ran `git pull --ff-only` sequentially after the fetch completed.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The sequential `git pull --ff-only` fast-forwarded local `main` to the merged PR commit.
