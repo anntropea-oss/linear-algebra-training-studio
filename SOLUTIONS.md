@@ -29,3 +29,19 @@
 - Files Changed: `SOLUTIONS.md`, local `.git/config`
 - Status: Resolved
 - Verification: `git log -1 --format='%an <%ae>'` should show the GitHub no-reply identity after the amended commit.
+
+## [2026-06-05 21:50] Parallel Milestone API Parse Failure
+- Problem: Two GitHub milestone creation calls failed with `unexpected end of JSON input` during parallel API execution.
+- Root Cause: Unknown; likely a transient `gh api` response parsing issue while several milestone creation calls ran at once.
+- Solution: Queried existing milestones, identified the missing `Diagnostic Engine` and `Persistence and Auth` milestones, and recreated them sequentially.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `gh api repos/anntropea-oss/linear-algebra-training-studio/milestones --jq '.[] | "#\\(.number) \\(.title)"'` lists all intended milestones.
+
+## [2026-06-05 21:52] GitHub Projects Scope Missing
+- Problem: Attempting to inspect or create GitHub Projects with `gh project list --owner anntropea-oss` failed because the token was missing the `read:project` scope.
+- Root Cause: The authenticated GitHub CLI token has repository scopes but not GitHub Projects scopes.
+- Solution: Used repository issues, labels, and milestones as the active tracking system and documented the Projects limitation in `docs/GITHUB_SETUP.md`.
+- Files Changed: `SOLUTIONS.md`, `docs/GITHUB_SETUP.md`
+- Status: Workaround
+- Verification: GitHub issues, labels, and milestones were created successfully; only the optional Projects board remains unavailable without refreshing GitHub CLI auth scopes.

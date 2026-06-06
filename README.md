@@ -26,6 +26,7 @@ npm run dev
 - [Data Model](/Users/atropea/Documents/Linear%20Algebra/docs/DATA_MODEL.md)
 - [MVP Roadmap](/Users/atropea/Documents/Linear%20Algebra/docs/MVP_ROADMAP.md)
 - [Pedagogy Notes](/Users/atropea/Documents/Linear%20Algebra/docs/PEDAGOGY_NOTES.md)
+- [GitHub Setup](/Users/atropea/Documents/Linear%20Algebra/docs/GITHUB_SETUP.md)
 
 ## Next Engineering Step
 
