@@ -85,3 +85,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `gh issue close` succeeded for issues #1, #2, #3, #4, #5, and #6.
+
+## [2026-06-06 18:27] Stale Public Demo Tunnel
+- Problem: The previous localtunnel demo URL returned `503`, and no localtunnel process was active.
+- Root Cause: The earlier ephemeral tunnel process had stopped.
+- Solution: Started a fresh localtunnel session for the running Vite app at `https://six-wings-walk.loca.lt`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `curl -I https://six-wings-walk.loca.lt` returned `HTTP/1.1 200 OK`.
