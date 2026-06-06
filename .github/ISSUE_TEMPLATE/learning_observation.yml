@@ -1,0 +1,36 @@
+name: Learning Observation
+description: Track anonymized learner patterns, misconception evidence, or instructional findings.
+title: "[Observation]: "
+labels: ["logging", "pedagogy"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include real learner names or sensitive educational records. Use anonymized IDs only."
+  - type: input
+    id: learner_id
+    attributes:
+      label: Anonymized Learner ID
+      placeholder: learner-a17
+    validations:
+      required: false
+  - type: textarea
+    id: observation
+    attributes:
+      label: Observation
+      description: What pattern, mistake, progress signal, or instructional need was observed?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Describe the evidence without exposing sensitive learner data.
+    validations:
+      required: true
+  - type: textarea
+    id: next_action
+    attributes:
+      label: Suggested Next Action
+      description: What should be changed, tested, or reviewed?
+    validations:
+      required: false

@@ -1,0 +1,33 @@
+name: Bug or Regression
+description: Track a product bug, failing test, or unexpected behavior.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe what happened and where it occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: Describe what should have happened.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: Include exact steps, inputs, or learner state needed to reproduce.
+    validations:
+      required: false
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification Needed
+      description: Describe what should be checked before closing.
+    validations:
+      required: true

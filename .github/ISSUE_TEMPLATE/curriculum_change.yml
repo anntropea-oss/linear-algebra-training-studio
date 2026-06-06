@@ -1,0 +1,33 @@
+name: Curriculum or Pedagogy Change
+description: Track changes to the skill map, problem templates, rubrics, or instructional model.
+title: "[Curriculum]: "
+labels: ["curriculum", "pedagogy"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed Change
+      description: Describe the curriculum or pedagogy change.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this change instructionally useful?
+    validations:
+      required: true
+  - type: textarea
+    id: affected_skills
+    attributes:
+      label: Affected Skills
+      description: List affected skill IDs, prerequisites, or problem templates.
+    validations:
+      required: false
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: How should the change be checked?
+    validations:
+      required: true

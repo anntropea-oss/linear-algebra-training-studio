@@ -1,0 +1,33 @@
+name: Feature or Product Work
+description: Track a product feature, workflow, dashboard, or system capability.
+title: "[Feature]: "
+labels: ["mvp"]
+body:
+  - type: textarea
+    id: user_need
+    attributes:
+      label: User Need
+      description: Who needs this and why?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What should be included in the first version?
+    validations:
+      required: true
+  - type: textarea
+    id: learning_impact
+    attributes:
+      label: Learning Impact
+      description: How will this improve placement, practice, feedback, or progress tracking?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: List observable outcomes that prove the feature is done.
+    validations:
+      required: true
