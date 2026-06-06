@@ -27,6 +27,13 @@ npm run dev
 - [MVP Roadmap](/Users/atropea/Documents/Linear%20Algebra/docs/MVP_ROADMAP.md)
 - [Pedagogy Notes](/Users/atropea/Documents/Linear%20Algebra/docs/PEDAGOGY_NOTES.md)
 - [GitHub Setup](/Users/atropea/Documents/Linear%20Algebra/docs/GITHUB_SETUP.md)
+- [Misconception Taxonomy](/Users/atropea/Documents/Linear%20Algebra/docs/MISCONCEPTION_TAXONOMY.md)
+- [Problem Template Library](/Users/atropea/Documents/Linear%20Algebra/docs/PROBLEM_TEMPLATE_LIBRARY.md)
+- [Diagnostic Engine](/Users/atropea/Documents/Linear%20Algebra/docs/DIAGNOSTIC_ENGINE.md)
+- [Persistence Plan](/Users/atropea/Documents/Linear%20Algebra/docs/PERSISTENCE_PLAN.md)
+- [Learner Submissions](/Users/atropea/Documents/Linear%20Algebra/docs/LEARNER_SUBMISSIONS.md)
+- [Instructor Analytics](/Users/atropea/Documents/Linear%20Algebra/docs/INSTRUCTOR_ANALYTICS.md)
+- [PostgreSQL Schema](/Users/atropea/Documents/Linear%20Algebra/docs/database/schema.sql)
 
 ## Next Engineering Step
 

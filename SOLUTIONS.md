@@ -45,3 +45,27 @@
 - Files Changed: `SOLUTIONS.md`, `docs/GITHUB_SETUP.md`
 - Status: Workaround
 - Verification: GitHub issues, labels, and milestones were created successfully; only the optional Projects board remains unavailable without refreshing GitHub CLI auth scopes.
+
+## [2026-06-06 17:01] Unused Rubric Import
+- Problem: `npm run build` and `npm run lint` failed because `src/App.tsx` imported `rubrics` without using it.
+- Root Cause: The rubric panel uses `getRubric(...)`, but the broader `rubrics` collection was left in the import list during UI wiring.
+- Solution: Removed the unused `rubrics` import from `src/App.tsx`.
+- Files Changed: `src/App.tsx`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build` and `npm run lint` completed successfully after removing the unused import.
+
+## [2026-06-06 17:04] In-App Browser Backend Unavailable
+- Problem: Browser verification could not run because the Browser plugin reported `No Codex browser route is available` and then `Browser is not available: iab`.
+- Root Cause: No session-owned in-app browser backend was discoverable for the current thread.
+- Solution: Reset the browser-control JavaScript kernel, confirmed `agent.browsers.list()` returned an empty list, and used build/lint plus local server checks as the verification workaround.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `agent.browsers.list()` returned `[]`; `curl` confirmed the local Vite server is reachable.
+
+## [2026-06-06 17:05] Local Snapshot Shape Migration Risk
+- Problem: Older browser localStorage snapshots from the first prototype could miss new fields such as `attemptLog`, mistake `categoryId`, mistake `status`, and assignment problem rubric metadata, causing runtime crashes after refresh.
+- Root Cause: The persistence layer originally trusted parsed snapshots without normalizing them against the current learner and assignment schema.
+- Solution: Added snapshot normalization in `src/data/persistence.ts` to fill missing learner fields, normalize mistake records, and replace stale assignment shapes with current fallback assignments.
+- Files Changed: `src/data/persistence.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `curl http://127.0.0.1:5173/` all completed successfully after the migration patch.
