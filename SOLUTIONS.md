@@ -141,3 +141,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `curl -I https://sweet-tires-fail.loca.lt` returned `HTTP/1.1 200 OK`.
+
+## [2026-06-06 21:54] Replacement Demo Tunnel Returned 408
+- Problem: The replacement public demo URL `https://sweet-tires-fail.loca.lt` began returning `408 Request Timeout` during final verification.
+- Root Cause: Unknown; the local Vite server remained healthy, so the failure was isolated to the localtunnel session.
+- Solution: Stopped the unreliable tunnel and started a new localtunnel session at `https://free-breads-hope.loca.lt`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `curl -I https://free-breads-hope.loca.lt` returned `HTTP/1.1 200 OK`, and `curl -L --max-time 15 https://free-breads-hope.loca.lt` returned `200` with the app HTML.
