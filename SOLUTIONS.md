@@ -149,3 +149,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `curl -I https://free-breads-hope.loca.lt` returned `HTTP/1.1 200 OK`, and `curl -L --max-time 15 https://free-breads-hope.loca.lt` returned `200` with the app HTML.
+
+## [2026-06-06 21:56] Detached Demo Tunnel Did Not Stay Alive
+- Problem: Attempting to restart `https://free-breads-hope.loca.lt` as a detached localtunnel process left no running localtunnel process and the URL returned `502 Bad Gateway`.
+- Root Cause: Unknown; the detached `npx localtunnel` process exited without useful log output.
+- Solution: Started a live localtunnel session instead at `https://mean-brooms-pump.loca.lt`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `curl -I https://mean-brooms-pump.loca.lt` returned `HTTP/1.1 200 OK`, and `curl -L --max-time 15 https://mean-brooms-pump.loca.lt` returned `200` with the app HTML.
