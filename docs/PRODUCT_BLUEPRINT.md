@@ -10,8 +10,9 @@ Build a real-time linear algebra tutor that lets a learner start anywhere, solve
 2. App creates an adaptive problem set for that point.
 3. Learner works in the answer box.
 4. Live coach reacts to the answer in real time.
-5. Learner submits the attempt.
-6. App updates mastery, confidence, mistake records, repair queue, and next problem set recommendations.
+5. Learner asks for guided support if they are stuck.
+6. Learner submits the attempt.
+7. App updates mastery, confidence, support used, mistake records, repair queue, and next problem set recommendations.
 
 ## Primary Experience
 
@@ -22,6 +23,7 @@ The first screen is not an instructor dashboard. It is a learning cockpit:
 - active problem sets
 - live coach feedback
 - hints and worked solution steps
+- AI-style guided solution steps when the learner does not know how to begin
 - repair queue
 - progress by concept
 - recent attempts and activity
@@ -33,6 +35,7 @@ The app should care about evidence:
 - what answer the learner tried
 - what concept the problem tests
 - what mistake pattern appeared
+- how many hints or guided steps the learner used
 - whether the learner needed hints
 - whether the next problem should repair, review, or challenge
 
@@ -41,6 +44,7 @@ The app should care about evidence:
 - Single learner profile persisted locally.
 - Multiple active problem sets.
 - Real-time response evaluation.
+- Guided solution function for stuck learners.
 - Adaptive, repair, and challenge set generation.
 - Mistake detection for common early patterns.
 - Mastery and confidence tracking by concept.

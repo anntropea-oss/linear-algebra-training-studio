@@ -19,6 +19,7 @@ import {
   addProblemSet,
   conceptSequenceFrom,
   concepts,
+  createGuidedSolution,
   evaluateResponse,
   getActiveSet,
   getConcept,
@@ -85,13 +86,21 @@ const App = () => {
   )
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
+  const [guideLevels, setGuideLevels] = useState<Record<string, number>>({})
   const activeSet = getActiveSet(profile, selectedSetId)
   const activeProblem = getNextProblemInSet(activeSet)
   const activeProgress = setCompletion(activeSet)
   const currentProgress = activeSet.progress[activeProblem.id]
   const draftAnswer = drafts[activeProblem.id] ?? currentProgress?.response ?? ''
   const hintLevel = hintLevels[activeProblem.id] ?? currentProgress?.hintsUsed ?? 0
+  const guideLevel =
+    guideLevels[activeProblem.id] ?? currentProgress?.guideStepsUsed ?? 0
   const liveFeedback = evaluateResponse(activeProblem, draftAnswer)
+  const guidedSolution = createGuidedSolution(
+    activeProblem,
+    draftAnswer,
+    guideLevel,
+  )
   const recommendedConcept = getConcept(profile.currentConceptId)
   const path = conceptSequenceFrom(profile.currentConceptId).slice(0, 5)
   const openMistakes = profile.mistakes.filter((mistake) => !mistake.resolved)
@@ -108,6 +117,7 @@ const App = () => {
     setSelectedSetId(nextProfile.problemSets[0]?.id)
     setDrafts({})
     setHintLevels({})
+    setGuideLevels({})
   }
 
   const handleAddSet = (mode: SetMode) => {
@@ -122,6 +132,10 @@ const App = () => {
       activeSet.id,
       activeProblem.id,
       draftAnswer,
+      {
+        hintsUsed: hintLevel,
+        guideStepsUsed: guideLevel,
+      },
     )
     const nextSet = getActiveSet(nextProfile, activeSet.id)
     setProfile(nextProfile)
@@ -129,6 +143,25 @@ const App = () => {
     setDrafts((currentDrafts) => ({
       ...currentDrafts,
       [activeProblem.id]: '',
+    }))
+    setHintLevels((currentLevels) => ({
+      ...currentLevels,
+      [activeProblem.id]: 0,
+    }))
+    setGuideLevels((currentLevels) => ({
+      ...currentLevels,
+      [activeProblem.id]: 0,
+    }))
+  }
+
+  const handleRevealGuideStep = () => {
+    setGuideLevels((currentLevels) => ({
+      ...currentLevels,
+      [activeProblem.id]: Math.min(
+        guidedSolution.steps.length,
+        (currentLevels[activeProblem.id] ?? currentProgress?.guideStepsUsed ?? 0) +
+          1,
+      ),
     }))
   }
 
@@ -283,6 +316,11 @@ const App = () => {
                 <span>{getConcept(activeProblem.conceptId).shortTitle}</span>
                 <span>Problem {activeSet.problemIds.indexOf(activeProblem.id) + 1}</span>
                 <span>{activeProgress.percent}% set complete</span>
+                {guideLevel > 0 ? (
+                  <span>
+                    AI guide {guideLevel}/{guidedSolution.steps.length}
+                  </span>
+                ) : null}
               </div>
               <h3>{activeProblem.prompt}</h3>
               <textarea
@@ -311,6 +349,10 @@ const App = () => {
                 >
                   <Lightbulb size={17} />
                   Hint
+                </button>
+                <button onClick={handleRevealGuideStep} type="button">
+                  <Brain size={17} />
+                  I don't know yet
                 </button>
                 <button
                   className="primary"
@@ -353,18 +395,47 @@ const App = () => {
               </div>
             </section>
 
-            <section className="panel solution-panel">
+            <section className="panel solution-panel guide-panel">
               <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">Worked path</p>
-                  <h2>Solution steps</h2>
+                  <p className="eyebrow">AI guide</p>
+                  <h2>{guidedSolution.headline}</h2>
                 </div>
+                <Brain size={18} />
               </div>
-              <ol>
-                {activeProblem.solutionSteps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
+              <div className="guide-nudge">
+                <strong>Coach nudge</strong>
+                <span>{guidedSolution.nudge}</span>
+              </div>
+              {guidedSolution.revealedSteps.length ? (
+                <ol className="guide-steps">
+                  {guidedSolution.revealedSteps.map((step) => (
+                    <li key={step.id}>
+                      <strong>{step.title}</strong>
+                      <p>{step.coachPrompt}</p>
+                      <span>{step.support}</span>
+                      <div>
+                        <b>Reveal</b>
+                        <span>{step.reveal}</span>
+                      </div>
+                      <em>{step.check}</em>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="muted">
+                  Stuck is useful evidence. Start with the smallest next move.
+                </p>
+              )}
+              <button
+                className={guidedSolution.completed ? '' : 'primary'}
+                disabled={guidedSolution.completed}
+                onClick={handleRevealGuideStep}
+                type="button"
+              >
+                <Brain size={17} />
+                {guidedSolution.completed ? 'Guide complete' : 'Next guided step'}
+              </button>
             </section>
 
             <section className="panel repair-panel">

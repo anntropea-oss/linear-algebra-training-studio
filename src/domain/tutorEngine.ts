@@ -54,6 +54,7 @@ export type ProblemProgress = {
   response: string
   score: number
   hintsUsed: number
+  guideStepsUsed: number
   submittedAt?: string
 }
 
@@ -75,6 +76,8 @@ export type Attempt = {
   response: string
   score: number
   feedback: string
+  hintsUsed: number
+  guideStepsUsed: number
   mistakeLabel?: string
   createdAt: string
 }
@@ -118,6 +121,25 @@ export type LiveFeedback = {
   score: number
   mistake?: MistakePattern
   matchedAccepted: boolean
+}
+
+export type GuidedSolutionStep = {
+  id: string
+  title: string
+  coachPrompt: string
+  support: string
+  reveal: string
+  check: string
+}
+
+export type GuidedSolution = {
+  problemId: string
+  headline: string
+  nudge: string
+  steps: GuidedSolutionStep[]
+  revealedSteps: GuidedSolutionStep[]
+  nextStep?: GuidedSolutionStep
+  completed: boolean
 }
 
 export const concepts: Concept[] = [
@@ -618,6 +640,7 @@ export const createProblemSet = (
           response: '',
           score: 0,
           hintsUsed: 0,
+          guideStepsUsed: 0,
         },
       ]),
     ),
@@ -706,16 +729,106 @@ export const recommendConcept = (profile: LearnerProfile) => {
 const clamp = (value: number, min = 0, max = 100) =>
   Math.min(max, Math.max(min, Math.round(value)))
 
+const problemStartPrompt = (problem: Problem) => {
+  if (problem.answerType === 'number') {
+    return 'Name the scalar the problem is asking for before calculating.'
+  }
+  if (problem.answerType === 'vector') {
+    return 'Write the coordinate equations or vector expression before solving.'
+  }
+  if (problem.answerType === 'choice') {
+    return 'List the possible outcomes, then eliminate the ones the prompt contradicts.'
+  }
+  return 'Write one sentence that states the claim you need to prove or explain.'
+}
+
+export const createGuidedSolution = (
+  problem: Problem,
+  response = '',
+  revealedStepCount = 0,
+): GuidedSolution => {
+  const feedback = evaluateResponse(problem, response)
+  const solutionSteps = problem.solutionSteps.length
+    ? problem.solutionSteps
+    : [problem.deeperHint]
+  const steps: GuidedSolutionStep[] = [
+    {
+      id: `${problem.id}-orient`,
+      title: 'Orient',
+      coachPrompt: 'What is the problem asking you to find or decide?',
+      support: problemStartPrompt(problem),
+      reveal: problem.hint,
+      check: `Your setup should show: ${problem.checksFor}`,
+    },
+    {
+      id: `${problem.id}-setup`,
+      title: 'Set up',
+      coachPrompt: 'What equation, definition, or test should start the work?',
+      support: problem.deeperHint,
+      reveal: solutionSteps[0],
+      check: 'Pause here and write the setup in your own words.',
+    },
+    ...solutionSteps.slice(1).map((step, index) => ({
+      id: `${problem.id}-work-${index + 1}`,
+      title: `Work step ${index + 1}`,
+      coachPrompt: 'Use the previous line to make the next small move.',
+      support: solutionSteps[index],
+      reveal: step,
+      check:
+        index === solutionSteps.length - 2
+          ? 'Compare this result with the original prompt.'
+          : 'Check the arithmetic before moving on.',
+    })),
+    {
+      id: `${problem.id}-check`,
+      title: 'Check',
+      coachPrompt: 'How do you know the answer actually solves the problem?',
+      support: `A complete response should match the target idea: ${problem.checksFor}`,
+      reveal: `One accepted form is: ${problem.accepted[0]}`,
+      check: 'Submit only after your answer explains the result, not just the final value.',
+    },
+  ]
+  const visibleCount = Math.min(Math.max(revealedStepCount, 0), steps.length)
+  const headline =
+    feedback.tone === 'correct'
+      ? 'You may not need the guide'
+      : feedback.tone === 'mistake'
+        ? `Repair first: ${feedback.headline}`
+        : 'Guided solution path'
+  const nudge =
+    feedback.tone === 'mistake'
+      ? feedback.nextAction
+      : visibleCount === 0
+        ? 'Ask for the first guided step when you are stuck.'
+        : steps[Math.min(visibleCount, steps.length - 1)].coachPrompt
+
+  return {
+    problemId: problem.id,
+    headline,
+    nudge,
+    steps,
+    revealedSteps: steps.slice(0, visibleCount),
+    nextStep: steps[visibleCount],
+    completed: visibleCount >= steps.length,
+  }
+}
+
 export const submitResponse = (
   profile: LearnerProfile,
   setId: string,
   problemId: string,
   response: string,
+  support: { hintsUsed?: number; guideStepsUsed?: number } = {},
 ): LearnerProfile => {
   const problem = getProblem(problemId)
   const feedback = evaluateResponse(problem, response)
-  const score = feedback.score
-  const masteryDelta = feedback.tone === 'correct' ? 8 : score >= 3 ? 3 : -4
+  const hintsUsed = support.hintsUsed ?? 0
+  const guideStepsUsed = support.guideStepsUsed ?? 0
+  const supportPenalty =
+    feedback.tone === 'correct' ? Math.min(2, Math.floor((hintsUsed + guideStepsUsed) / 3)) : 0
+  const score = Math.max(0, feedback.score - supportPenalty)
+  const guidedCorrectDelta = guideStepsUsed > 0 || hintsUsed > 1 ? 5 : 8
+  const masteryDelta = feedback.tone === 'correct' ? guidedCorrectDelta : score >= 3 ? 3 : -4
   const confidenceDelta = feedback.tone === 'correct' ? 6 : feedback.tone === 'mistake' ? -5 : 1
   const createdAt = nowIso()
   const attempt: Attempt = {
@@ -724,7 +837,12 @@ export const submitResponse = (
     conceptId: problem.conceptId,
     response,
     score,
-    feedback: feedback.detail,
+    feedback:
+      guideStepsUsed > 0
+        ? `${feedback.detail} Guided support used: ${guideStepsUsed} step${guideStepsUsed === 1 ? '' : 's'}.`
+        : feedback.detail,
+    hintsUsed,
+    guideStepsUsed,
     mistakeLabel: feedback.mistake?.label,
     createdAt,
   }
@@ -752,6 +870,8 @@ export const submitResponse = (
         status: 'answered' as ProblemStatus,
         response,
         score,
+        hintsUsed,
+        guideStepsUsed,
         submittedAt: createdAt,
       },
     }
@@ -784,7 +904,12 @@ export const submitResponse = (
       {
         id: uid('activity'),
         createdAt,
-        title: feedback.tone === 'correct' ? 'Problem solved' : 'Problem checked',
+        title:
+          guideStepsUsed > 0
+            ? 'Guided problem checked'
+            : feedback.tone === 'correct'
+              ? 'Problem solved'
+              : 'Problem checked',
         detail: `${getConcept(problem.conceptId).shortTitle}: ${feedback.headline}`,
       },
       ...profile.activity,
