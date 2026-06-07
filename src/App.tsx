@@ -1,747 +1,433 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
-  BookOpen,
+  Activity,
+  ArrowRight,
   Brain,
   CheckCircle2,
-  Download,
-  FileText,
+  CircleDot,
   Flame,
-  Gauge,
-  LineChart,
+  Lightbulb,
   Plus,
+  RefreshCcw,
   RotateCcw,
-  Save,
   Target,
   TriangleAlert,
-  Users,
 } from 'lucide-react'
 import './App.css'
 import {
-  assignmentToHtml,
-  averageMastery,
-  applyDiagnosticCheckpoint,
-  buildCohortAnalytics,
-  buildDiagnosticReport,
-  generateAssignment,
-  getSkill,
-  initialLearners,
-  logAssignment,
-  logDownload,
-  recordAssignmentAttempt,
-  recordPracticeResult,
-  skillCatalog,
-  stageMastery,
-  stageOrder,
-  weakestSkills,
-} from './data/learningModel'
-import type {
-  ActivityType,
-  Assignment,
-  Learner,
-  Outcome,
-  SkillId,
-} from './data/learningModel'
-import {
-  clearTrainingSnapshot,
-  loadTrainingSnapshot,
-  saveTrainingSnapshot,
-} from './data/persistence'
-import { getMisconceptionCategory, getRubric } from './data/pedagogy'
+  addProblemSet,
+  conceptSequenceFrom,
+  concepts,
+  evaluateResponse,
+  getActiveSet,
+  getConcept,
+  getNextProblemInSet,
+  overallMastery,
+  resolveMistake,
+  setCompletion,
+  submitResponse,
+} from './domain/tutorEngine'
+import type { ConceptId, LearnerProfile, SetMode } from './domain/tutorEngine'
+import { loadProfile, resetProfile, saveProfile } from './domain/storage'
 
-const StageMasteryChart = lazy(() =>
-  import('./components/Charts').then((module) => ({
-    default: module.StageMasteryChart,
-  })),
-)
-const MasteryRadarChart = lazy(() =>
-  import('./components/Charts').then((module) => ({
-    default: module.MasteryRadarChart,
-  })),
-)
-const MiniTrendChart = lazy(() =>
-  import('./components/Charts').then((module) => ({
-    default: module.MiniTrendChart,
-  })),
-)
-
-type ProgressStyle = CSSProperties & {
-  '--bar': string
-  '--accent': string
+type MeterStyle = CSSProperties & {
+  '--value': string
 }
 
-const buildInitialAssignments = (learners = initialLearners) =>
-  Object.fromEntries(
-    learners.map((learner) => [learner.id, generateAssignment(learner)]),
-  ) as Record<string, Assignment>
+const startOptions: Array<{
+  id: ConceptId
+  label: string
+  detail: string
+}> = [
+  {
+    id: 'vectors',
+    label: 'Brand new',
+    detail: 'Start with vectors, coordinates, and combinations.',
+  },
+  {
+    id: 'systems',
+    label: 'I can solve equations',
+    detail: 'Begin with systems, rows, and pivots.',
+  },
+  {
+    id: 'matrix-transformations',
+    label: 'I know matrices',
+    detail: 'Work on transformations and structure.',
+  },
+  {
+    id: 'eigenvalues',
+    label: 'Advanced review',
+    detail: 'Jump into eigenvectors and spectral ideas.',
+  },
+]
 
-const formatDate = (value: string) =>
+const formatTime = (value: string) =>
   new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   }).format(new Date(value))
 
-const masteryColor = (mastery: number) => {
-  if (mastery >= 80) return '#0f766e'
-  if (mastery >= 60) return '#2563eb'
-  if (mastery >= 40) return '#b45309'
-  return '#be123c'
+const masteryStatus = (value: number) => {
+  if (value >= 80) return 'secure'
+  if (value >= 60) return 'growing'
+  if (value >= 40) return 'fragile'
+  return 'repair'
 }
-
-const statusLabel = (mastery: number) => {
-  if (mastery >= 85) return 'Secure'
-  if (mastery >= 65) return 'Developing'
-  if (mastery >= 45) return 'Fragile'
-  return 'Needs repair'
-}
-
-const activityIcon = (type: ActivityType) => {
-  if (type === 'assignment') return <FileText size={16} />
-  if (type === 'mistake') return <TriangleAlert size={16} />
-  if (type === 'download') return <Download size={16} />
-  if (type === 'diagnostic') return <Gauge size={16} />
-  if (type === 'submission') return <Save size={16} />
-  if (type === 'reset') return <RotateCcw size={16} />
-  return <CheckCircle2 size={16} />
-}
-
-const shortSkillName = (name: string) =>
-  name
-    .replace(' and ', ' + ')
-    .replace('Linear ', '')
-    .replace('Matrix ', '')
-    .replace('Eigenvalues and eigenvectors', 'Eigen')
-    .replace('Projections and least squares', 'Projections')
 
 const App = () => {
-  const initialSnapshot = useMemo(
-    () => loadTrainingSnapshot(initialLearners, buildInitialAssignments()),
-    [],
+  const [profile, setProfile] = useState<LearnerProfile>(() => loadProfile())
+  const [selectedStart, setSelectedStart] = useState<ConceptId>(
+    profile.startingPoint,
   )
-  const [learners, setLearners] = useState<Learner[]>(initialSnapshot.learners)
-  const [selectedLearnerId, setSelectedLearnerId] = useState(initialLearners[0].id)
-  const [selectedSkillId, setSelectedSkillId] =
-    useState<SkillId>('linear-independence')
-  const [practiceNote, setPracticeNote] = useState('')
-  const [assignments, setAssignments] = useState<Record<string, Assignment>>(
-    initialSnapshot.assignments,
+  const [selectedSetId, setSelectedSetId] = useState<string | undefined>(
+    profile.problemSets[0]?.id,
   )
-  const [submissionAnswer, setSubmissionAnswer] = useState('')
-  const [confidenceBefore, setConfidenceBefore] = useState(45)
-  const [confidenceAfter, setConfidenceAfter] = useState(55)
-  const [hintsUsed, setHintsUsed] = useState(0)
-
-  const learner =
-    learners.find((currentLearner) => currentLearner.id === selectedLearnerId) ??
-    learners[0]
-  const activeAssignment =
-    assignments[learner.id] ?? generateAssignment(learner, new Date().toISOString())
-  const activeProblem = activeAssignment.problems[0]
-  const mastery = averageMastery(learner)
-  const stageData = useMemo(() => stageMastery(learner), [learner])
-  const weakSkills = useMemo(() => weakestSkills(learner, 3), [learner])
-  const selectedSkill = getSkill(selectedSkillId)
-  const diagnosticReport = useMemo(() => buildDiagnosticReport(learner), [learner])
-  const cohortAnalytics = useMemo(() => buildCohortAnalytics(learners), [learners])
-  const selectedRubric = getRubric(activeProblem.rubricId)
-  const selectedMisconception = getMisconceptionCategory(
-    activeProblem.misconceptionCategoryId,
-  )
-  const weeklyPercent = Math.min(
-    100,
-    Math.round((learner.minutesThisWeek / learner.weeklyGoalMinutes) * 100),
-  )
-  const reviewCount = skillCatalog.filter(
-    (skill) => learner.skills[skill.id].mastery < 55,
-  ).length
-  const radarData = skillCatalog.map((skill) => ({
-    skill: shortSkillName(skill.name),
-    mastery: learner.skills[skill.id].mastery,
-  }))
-  const trendData = [...learner.activityLog]
-    .slice(0, 7)
-    .reverse()
-    .map((entry, index) => ({
-      name: formatDate(entry.date),
-      score: Math.min(100, mastery - (6 - index) * 2 + index),
-    }))
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
+  const activeSet = getActiveSet(profile, selectedSetId)
+  const activeProblem = getNextProblemInSet(activeSet)
+  const activeProgress = setCompletion(activeSet)
+  const currentProgress = activeSet.progress[activeProblem.id]
+  const draftAnswer = drafts[activeProblem.id] ?? currentProgress?.response ?? ''
+  const hintLevel = hintLevels[activeProblem.id] ?? currentProgress?.hintsUsed ?? 0
+  const liveFeedback = evaluateResponse(activeProblem, draftAnswer)
+  const recommendedConcept = getConcept(profile.currentConceptId)
+  const path = conceptSequenceFrom(profile.currentConceptId).slice(0, 5)
+  const openMistakes = profile.mistakes.filter((mistake) => !mistake.resolved)
+  const nextRepair = openMistakes[0]
+  const currentMastery = overallMastery(profile)
 
   useEffect(() => {
-    saveTrainingSnapshot(learners, assignments)
-  }, [learners, assignments])
+    saveProfile(profile)
+  }, [profile])
 
-  const updateLearner = (nextLearner: Learner) => {
-    setLearners((currentLearners) =>
-      currentLearners.map((currentLearner) =>
-        currentLearner.id === nextLearner.id ? nextLearner : currentLearner,
-      ),
-    )
+  const handleStartOver = () => {
+    const nextProfile = resetProfile(selectedStart, profile.name)
+    setProfile(nextProfile)
+    setSelectedSetId(nextProfile.problemSets[0]?.id)
+    setDrafts({})
+    setHintLevels({})
   }
 
-  const handleGenerateAssignment = () => {
-    const assignment = generateAssignment(learner, new Date().toISOString())
-    setAssignments((currentAssignments) => ({
-      ...currentAssignments,
-      [learner.id]: assignment,
+  const handleAddSet = (mode: SetMode) => {
+    const nextProfile = addProblemSet(profile, mode)
+    setProfile(nextProfile)
+    setSelectedSetId(nextProfile.problemSets[0]?.id)
+  }
+
+  const handleSubmit = () => {
+    const nextProfile = submitResponse(
+      profile,
+      activeSet.id,
+      activeProblem.id,
+      draftAnswer,
+    )
+    const nextSet = getActiveSet(nextProfile, activeSet.id)
+    setProfile(nextProfile)
+    setSelectedSetId(nextSet.id)
+    setDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [activeProblem.id]: '',
     }))
-    updateLearner(logAssignment(learner, assignment))
-  }
-
-  const handleDownload = () => {
-    const html = assignmentToHtml(activeAssignment, learner)
-    const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `${learner.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')}-${activeAssignment.id.toLowerCase()}.html`
-    anchor.click()
-    URL.revokeObjectURL(url)
-    updateLearner(logDownload(learner, activeAssignment))
-  }
-
-  const handlePracticeResult = (outcome: Outcome) => {
-    updateLearner(recordPracticeResult(learner, selectedSkillId, outcome, practiceNote))
-    setPracticeNote('')
-  }
-
-  const handleDiagnosticCheckpoint = () => {
-    updateLearner(applyDiagnosticCheckpoint(learner))
-  }
-
-  const handleSubmitAssignment = () => {
-    updateLearner(
-      recordAssignmentAttempt(
-        learner,
-        activeAssignment,
-        activeProblem.id,
-        submissionAnswer,
-        confidenceBefore,
-        confidenceAfter,
-        hintsUsed,
-      ),
-    )
-    setSubmissionAnswer('')
-    setConfidenceBefore(45)
-    setConfidenceAfter(55)
-    setHintsUsed(0)
-  }
-
-  const handleResetLocalRecords = () => {
-    clearTrainingSnapshot()
-    const fallbackAssignments = buildInitialAssignments(initialLearners)
-    setLearners(initialLearners)
-    setAssignments(fallbackAssignments)
-    setSelectedLearnerId(initialLearners[0].id)
   }
 
   return (
     <div className="app-shell">
-      <aside className="side-panel" aria-label="Learner roster">
-        <div className="brand-lockup">
-          <div className="brand-mark">
+      <aside className="rail">
+        <div className="brand">
+          <span className="brand-icon">
             <Brain size={24} />
-          </div>
+          </span>
           <div>
             <p className="eyebrow">Linear Algebra</p>
-            <h1>Training Studio</h1>
+            <h1>Live Tutor</h1>
           </div>
         </div>
 
-        <div className="learner-list">
-          {learners.map((currentLearner) => {
-            const currentMastery = averageMastery(currentLearner)
-            const isActive = currentLearner.id === learner.id
-            return (
+        <section className="panel start-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Starting point</p>
+              <h2>Meet yourself where you are</h2>
+            </div>
+            <Target size={18} />
+          </div>
+          <div className="start-options">
+            {startOptions.map((option) => (
               <button
-                className={`learner-button ${isActive ? 'active' : ''}`}
-                key={currentLearner.id}
-                onClick={() => setSelectedLearnerId(currentLearner.id)}
+                className={selectedStart === option.id ? 'selected' : ''}
+                key={option.id}
+                onClick={() => setSelectedStart(option.id)}
                 type="button"
               >
-                <span
-                  className="avatar"
-                  style={{ background: currentLearner.avatarColor }}
-                >
-                  {currentLearner.name
-                    .split(' ')
-                    .map((part) => part[0])
-                    .join('')}
-                </span>
-                <span>
-                  <strong>{currentLearner.name}</strong>
-                  <small>
-                    {currentLearner.levelName} | {currentMastery}% mastery
-                  </small>
-                </span>
+                <strong>{option.label}</strong>
+                <span>{option.detail}</span>
               </button>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+          <button className="wide-button" onClick={handleStartOver} type="button">
+            <RefreshCcw size={17} />
+            Restart path
+          </button>
+        </section>
 
-        <div className="instructor-brief">
-          <div className="brief-row">
-            <Users size={17} />
-            <span>{learners.length} active learners</span>
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Progress</p>
+              <h2>{currentMastery}% overall</h2>
+            </div>
+            <Flame size={18} />
           </div>
-          <div className="brief-row">
-            <Target size={17} />
-            <span>{reviewCount} skills below target</span>
+          <div className="concept-stack">
+            {concepts.map((concept) => {
+              const value = profile.mastery[concept.id]
+              return (
+                <div className="concept-row" key={concept.id}>
+                  <div>
+                    <strong>{concept.shortTitle}</strong>
+                    <span>{masteryStatus(value)}</span>
+                  </div>
+                  <div
+                    className="meter"
+                    style={{ '--value': `${value}%` } as MeterStyle}
+                  >
+                    <span />
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className="brief-row">
-            <RotateCcw size={17} />
-            <span>Spaced review queue enabled</span>
-          </div>
-        </div>
+        </section>
       </aside>
 
       <main className="workspace">
-        <header className="workspace-header">
+        <header className="hero-panel">
           <div>
-            <p className="eyebrow">{learner.cohort} cohort</p>
-            <h2>{learner.name}</h2>
-            <p className="header-subtitle">{learner.levelName}</p>
+            <p className="eyebrow">Now learning</p>
+            <h2>{recommendedConcept.title}</h2>
+            <p>{recommendedConcept.target}</p>
           </div>
-          <div className="header-actions">
-            <button type="button" onClick={handleDiagnosticCheckpoint}>
-              <Gauge size={18} />
-              Diagnostic
-            </button>
-            <button type="button" onClick={handleGenerateAssignment}>
-              <Plus size={18} />
-              Generate
-            </button>
-            <button className="primary" type="button" onClick={handleDownload}>
-              <Download size={18} />
-              Download
-            </button>
-            <button type="button" onClick={handleResetLocalRecords}>
-              <RotateCcw size={18} />
-              Reset
-            </button>
+          <div className="hero-stats">
+            <div>
+              <strong>{profile.mastery[recommendedConcept.id]}%</strong>
+              <span>mastery</span>
+            </div>
+            <div>
+              <strong>{profile.confidence[recommendedConcept.id]}%</strong>
+              <span>confidence</span>
+            </div>
+            <div>
+              <strong>{openMistakes.length}</strong>
+              <span>open repairs</span>
+            </div>
           </div>
         </header>
 
-        <section className="metric-grid" aria-label="Learner summary">
-          <article className="metric-panel">
-            <Gauge size={20} />
-            <span>Mastery</span>
-            <strong>{mastery}%</strong>
-          </article>
-          <article className="metric-panel">
-            <Flame size={20} />
-            <span>Streak</span>
-            <strong>{learner.streakDays} days</strong>
-          </article>
-          <article className="metric-panel">
-            <BookOpen size={20} />
-            <span>Weekly work</span>
-            <strong>{weeklyPercent}%</strong>
-          </article>
-          <article className="metric-panel">
-            <TriangleAlert size={20} />
-            <span>Review queue</span>
-            <strong>{reviewCount}</strong>
-          </article>
+        <section className="path-strip">
+          {path.map((concept, index) => (
+            <div className="path-node" key={concept.id}>
+              <span>{index + 1}</span>
+              <strong>{concept.shortTitle}</strong>
+            </div>
+          ))}
         </section>
 
-        <section className="insight-grid">
-          <article className="tool-panel diagnostic-panel">
+        <section className="main-grid">
+          <article className="panel problem-panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Diagnostic engine</p>
-                <h3>{diagnosticReport.placement}</h3>
+                <p className="eyebrow">Active problem set</p>
+                <h2>{activeSet.title}</h2>
               </div>
-              <Gauge size={19} />
+              <span className={`set-status ${activeSet.status}`}>{activeSet.status}</span>
             </div>
-            <div className="diagnostic-score">
-              <strong>{diagnosticReport.score}%</strong>
-              <span>placement evidence</span>
-            </div>
-            <div className="diagnostic-columns">
-              <div>
-                <span>Repair</span>
-                <strong>{diagnosticReport.repairSkills.length}</strong>
-              </div>
-              <div>
-                <span>Review</span>
-                <strong>{diagnosticReport.reviewSkills.length}</strong>
-              </div>
-              <div>
-                <span>Ready</span>
-                <strong>{diagnosticReport.readySkills.length}</strong>
-              </div>
-            </div>
-            <ul className="next-step-list">
-              {diagnosticReport.nextSteps.slice(0, 3).map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ul>
-          </article>
 
-          <article className="tool-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Instructor analytics</p>
-                <h3>Cohort signals</h3>
-              </div>
-              <Users size={19} />
+            <div className="set-switcher">
+              {profile.problemSets.map((set) => {
+                const completion = setCompletion(set)
+                return (
+                  <button
+                    className={set.id === activeSet.id ? 'active' : ''}
+                    key={set.id}
+                    onClick={() => setSelectedSetId(set.id)}
+                    type="button"
+                  >
+                    <strong>{set.title}</strong>
+                    <span>
+                      {completion.answered}/{completion.total} | {completion.percent}%
+                    </span>
+                  </button>
+                )
+              })}
             </div>
-            <div className="analytics-kpis">
-              <div>
-                <span>Avg mastery</span>
-                <strong>{cohortAnalytics.averageMastery}%</strong>
-              </div>
-              <div>
-                <span>Open mistakes</span>
-                <strong>{cohortAnalytics.openMistakeCount}</strong>
-              </div>
-              <div>
-                <span>Attempts</span>
-                <strong>{cohortAnalytics.attemptCount}</strong>
-              </div>
-            </div>
-            <div className="misconception-list">
-              {cohortAnalytics.commonMisconceptions.slice(0, 4).map((item) => (
-                <div key={item.categoryId}>
-                  <strong>{item.label}</strong>
-                  <span>{item.count} open</span>
-                </div>
-              ))}
-            </div>
-          </article>
 
-          <article className="tool-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Rubric</p>
-                <h3>{selectedRubric.name}</h3>
-              </div>
-              <Target size={19} />
+            <div className="set-actions">
+              <button onClick={() => handleAddSet('adaptive')} type="button">
+                <Plus size={17} />
+                Adaptive
+              </button>
+              <button onClick={() => handleAddSet('repair')} type="button">
+                <RotateCcw size={17} />
+                Repair
+              </button>
+              <button onClick={() => handleAddSet('challenge')} type="button">
+                <ArrowRight size={17} />
+                Challenge
+              </button>
             </div>
-            <div className="rubric-list">
-              {selectedRubric.criteria.map((criterion) => (
-                <div key={criterion.id}>
-                  <strong>
-                    {criterion.label} ({criterion.points})
-                  </strong>
-                  <span>{criterion.evidence}</span>
-                </div>
-              ))}
-            </div>
-            <p className="rubric-note">{selectedRubric.partialCreditNotes}</p>
-          </article>
-        </section>
 
-        <section className="analytics-grid">
-          <article className="tool-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Mastery by stage</p>
-                <h3>Concept map</h3>
+            <div className="problem-card">
+              <div className="problem-meta">
+                <span>{getConcept(activeProblem.conceptId).shortTitle}</span>
+                <span>Problem {activeSet.problemIds.indexOf(activeProblem.id) + 1}</span>
+                <span>{activeProgress.percent}% set complete</span>
               </div>
-              <LineChart size={19} />
-            </div>
-            <div className="chart-frame">
-              <Suspense fallback={<div className="chart-skeleton" />}>
-                <StageMasteryChart data={stageData} />
-              </Suspense>
-            </div>
-          </article>
-
-          <article className="tool-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Skill coverage</p>
-                <h3>Mastery radar</h3>
-              </div>
-              <Target size={19} />
-            </div>
-            <div className="chart-frame">
-              <Suspense fallback={<div className="chart-skeleton" />}>
-                <MasteryRadarChart data={radarData} />
-              </Suspense>
-            </div>
-          </article>
-        </section>
-
-        <section className="assignment-grid">
-          <article className="tool-panel assignment-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Active homework</p>
-                <h3>{activeAssignment.title}</h3>
-              </div>
-              <FileText size={19} />
-            </div>
-            <div className="assignment-meta">
-              <span>Due {formatDate(activeAssignment.dueAt)}</span>
-              <span>{activeAssignment.estimatedMinutes} min</span>
-              <span>{activeAssignment.problems.length} problems</span>
-            </div>
-            <div className="focus-list">
-              {activeAssignment.focusSkillIds.map((skillId) => (
-                <span key={skillId}>{getSkill(skillId).name}</span>
-              ))}
-            </div>
-            <ol className="problem-list">
-              {activeAssignment.problems.map((problem) => (
-                <li key={problem.id}>
-                  <strong>{getSkill(problem.skillId).name}</strong>
-                  <p>{problem.prompt}</p>
-                  <small>
-                    {problem.transferType.replace('-', ' ')} |{' '}
-                    {getMisconceptionCategory(problem.misconceptionCategoryId).label}
-                  </small>
-                </li>
-              ))}
-            </ol>
-
-            <div className="submission-workbench">
-              <div>
-                <p className="eyebrow">Learner submission</p>
-                <h4>{getSkill(activeProblem.skillId).name}</h4>
-                <p>{activeProblem.prompt}</p>
-                <small>
-                  Hint focus: {activeProblem.hint} | Rubric: {selectedRubric.name}
-                </small>
-              </div>
-              <label className="field-label" htmlFor="submission-answer">
-                Answer
-              </label>
+              <h3>{activeProblem.prompt}</h3>
               <textarea
-                id="submission-answer"
-                onChange={(event) => setSubmissionAnswer(event.target.value)}
-                placeholder="Type the learner response or paste submitted work."
-                value={submissionAnswer}
+                aria-label="Answer"
+                onChange={(event) =>
+                  setDrafts((currentDrafts) => ({
+                    ...currentDrafts,
+                    [activeProblem.id]: event.target.value,
+                  }))
+                }
+                placeholder="Work here. The coach responds as you type."
+                value={draftAnswer}
               />
-              <div className="submission-controls">
-                <label htmlFor="confidence-before">
-                  Confidence before
-                  <input
-                    id="confidence-before"
-                    max="100"
-                    min="0"
-                    onChange={(event) =>
-                      setConfidenceBefore(Number(event.target.value))
-                    }
-                    type="number"
-                    value={confidenceBefore}
-                  />
-                </label>
-                <label htmlFor="confidence-after">
-                  Confidence after
-                  <input
-                    id="confidence-after"
-                    max="100"
-                    min="0"
-                    onChange={(event) => setConfidenceAfter(Number(event.target.value))}
-                    type="number"
-                    value={confidenceAfter}
-                  />
-                </label>
-                <label htmlFor="hints-used">
-                  Hints
-                  <input
-                    id="hints-used"
-                    max="5"
-                    min="0"
-                    onChange={(event) => setHintsUsed(Number(event.target.value))}
-                    type="number"
-                    value={hintsUsed}
-                  />
-                </label>
+              <div className="problem-actions">
+                <button
+                  onClick={() =>
+                    setHintLevels((currentLevels) => ({
+                      ...currentLevels,
+                      [activeProblem.id]: Math.min(
+                        2,
+                        (currentLevels[activeProblem.id] ?? 0) + 1,
+                      ),
+                    }))
+                  }
+                  type="button"
+                >
+                  <Lightbulb size={17} />
+                  Hint
+                </button>
+                <button
+                  className="primary"
+                  disabled={!draftAnswer.trim() || activeSet.status === 'completed'}
+                  onClick={handleSubmit}
+                  type="button"
+                >
+                  <CheckCircle2 size={17} />
+                  Submit
+                </button>
               </div>
-              <button
-                className="primary"
-                disabled={submissionAnswer.trim().length === 0}
-                onClick={handleSubmitAssignment}
-                type="button"
-              >
-                <Save size={18} />
-                Submit evidence
-              </button>
-              <p className="rubric-note">
-                Watch for {selectedMisconception.label.toLowerCase()}:{' '}
-                {selectedMisconception.intervention}
-              </p>
+              {hintLevel > 0 ? (
+                <div className="hint-box">
+                  <strong>Hint {hintLevel}</strong>
+                  <p>{hintLevel === 1 ? activeProblem.hint : activeProblem.deeperHint}</p>
+                </div>
+              ) : null}
             </div>
           </article>
 
-          <article className="tool-panel practice-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Practice logger</p>
-                <h3>Record evidence</h3>
+          <aside className="coach-column">
+            <section className={`panel coach-panel ${liveFeedback.tone}`}>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Live coach</p>
+                  <h2>{liveFeedback.headline}</h2>
+                </div>
+                {liveFeedback.tone === 'correct' ? (
+                  <CheckCircle2 size={18} />
+                ) : liveFeedback.tone === 'mistake' ? (
+                  <TriangleAlert size={18} />
+                ) : (
+                  <CircleDot size={18} />
+                )}
               </div>
-              <CheckCircle2 size={19} />
-            </div>
-            <label className="field-label" htmlFor="skill-select">
-              Skill
-            </label>
-            <select
-              id="skill-select"
-              onChange={(event) => setSelectedSkillId(event.target.value)}
-              value={selectedSkillId}
-            >
-              {skillCatalog.map((skill) => (
-                <option key={skill.id} value={skill.id}>
-                  {skill.name}
-                </option>
-              ))}
-            </select>
-            <label className="field-label" htmlFor="practice-note">
-              Note
-            </label>
-            <textarea
-              id="practice-note"
-              onChange={(event) => setPracticeNote(event.target.value)}
-              placeholder={`Evidence for ${selectedSkill.name}`}
-              value={practiceNote}
-            />
-            <div className="practice-actions">
-              <button
-                className="success"
-                onClick={() => handlePracticeResult('correct')}
-                type="button"
-              >
-                <CheckCircle2 size={18} />
-                Correct
-              </button>
-              <button
-                className="warning"
-                onClick={() => handlePracticeResult('mistake')}
-                type="button"
-              >
+              <p>{liveFeedback.detail}</p>
+              <div className="next-action">
+                <strong>Next move</strong>
+                <span>{liveFeedback.nextAction}</span>
+              </div>
+            </section>
+
+            <section className="panel solution-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Worked path</p>
+                  <h2>Solution steps</h2>
+                </div>
+              </div>
+              <ol>
+                {activeProblem.solutionSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="panel repair-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Repair queue</p>
+                  <h2>{nextRepair ? nextRepair.label : 'Clear'}</h2>
+                </div>
                 <TriangleAlert size={18} />
-                Mistake
-              </button>
-            </div>
-
-            <div className="mini-trend">
-              <Suspense fallback={<div className="chart-skeleton compact" />}>
-                <MiniTrendChart data={trendData} />
-              </Suspense>
-            </div>
-          </article>
+              </div>
+              {nextRepair ? (
+                <div className="repair-card">
+                  <p>{nextRepair.feedback}</p>
+                  <strong>{nextRepair.repair}</strong>
+                  <button
+                    onClick={() => setProfile(resolveMistake(profile, nextRepair.id))}
+                    type="button"
+                  >
+                    Mark repaired
+                  </button>
+                </div>
+              ) : (
+                <p className="muted">No open repairs. Keep going.</p>
+              )}
+            </section>
+          </aside>
         </section>
 
-        <section className="skills-section">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Adaptive profile</p>
-              <h3>Skill graph</h3>
-            </div>
-            <div className="weak-skill-strip">
-              {weakSkills.map((skill) => (
-                <span key={skill.id}>{skill.name}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="stage-columns">
-            {stageOrder.map((stage) => (
-              <article className="stage-column" key={stage}>
-                <h4>{stage}</h4>
-                {skillCatalog
-                  .filter((skill) => skill.stage === stage)
-                  .map((skill) => {
-                    const state = learner.skills[skill.id]
-                    const progressStyle: ProgressStyle = {
-                      '--bar': `${state.mastery}%`,
-                      '--accent': masteryColor(state.mastery),
-                    }
-                    return (
-                      <div className="skill-card" key={skill.id}>
-                        <div className="skill-card-top">
-                          <strong>{skill.name}</strong>
-                          <span>{statusLabel(state.mastery)}</span>
-                        </div>
-                        <div className="progress-track" style={progressStyle}>
-                          <span />
-                        </div>
-                        <div className="skill-card-foot">
-                          <span>{state.mastery}% mastery</span>
-                          <span>{state.confidence}% confidence</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="records-grid">
-          <article className="tool-panel">
+        <section className="bottom-grid">
+          <article className="panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Mistakes</p>
-                <h3>Correction queue</h3>
+                <p className="eyebrow">Recent attempts</p>
+                <h2>Learning evidence</h2>
               </div>
-              <TriangleAlert size={19} />
+              <Activity size={18} />
             </div>
-            <div className="record-list">
-              {learner.mistakeLog.slice(0, 5).map((entry) => (
-                <div className="record-row" key={entry.id}>
-                  <span className={`severity ${entry.severity}`} />
+            <div className="attempt-list">
+              {profile.attempts.slice(0, 5).map((attempt) => (
+                <div className="attempt-row" key={attempt.id}>
+                  <span>{attempt.score}/5</span>
                   <div>
-                    <strong>{getSkill(entry.skillId).name}</strong>
-                    <p>
-                      {getMisconceptionCategory(entry.categoryId).label}:{' '}
-                      {entry.misconception}
-                    </p>
-                    <small>{entry.correction}</small>
+                    <strong>{getConcept(attempt.conceptId).shortTitle}</strong>
+                    <p>{attempt.feedback}</p>
                   </div>
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="tool-panel">
+          <article className="panel">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Attempts</p>
-                <h3>Submission evidence</h3>
+                <p className="eyebrow">Activity</p>
+                <h2>Session record</h2>
               </div>
-              <Save size={19} />
             </div>
-            <div className="record-list">
-              {learner.attemptLog.slice(0, 5).map((entry) => (
-                <div className="record-row" key={entry.id}>
-                  <span className="event-icon">{activityIcon('submission')}</span>
-                  <div>
-                    <strong>
-                      {getSkill(entry.skillId).name} | {entry.score}/{entry.maxScore}
-                    </strong>
-                    <p>{entry.feedback}</p>
-                    <small>
-                      Confidence {entry.confidenceBefore}% to {entry.confidenceAfter}%
-                    </small>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="tool-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Record</p>
-                <h3>Learning log</h3>
-              </div>
-              <BookOpen size={19} />
-            </div>
-            <div className="record-list">
-              {learner.activityLog.slice(0, 6).map((entry) => (
-                <div className="record-row" key={entry.id}>
-                  <span className="event-icon">{activityIcon(entry.type)}</span>
-                  <div>
-                    <strong>{entry.title}</strong>
-                    <p>{entry.detail}</p>
-                    <small>{formatDate(entry.date)}</small>
-                  </div>
+            <div className="activity-list">
+              {profile.activity.slice(0, 6).map((entry) => (
+                <div key={entry.id}>
+                  <strong>{entry.title}</strong>
+                  <p>{entry.detail}</p>
+                  <span>{formatTime(entry.createdAt)}</span>
                 </div>
               ))}
             </div>
