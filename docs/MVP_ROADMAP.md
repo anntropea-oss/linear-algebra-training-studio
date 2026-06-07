@@ -8,7 +8,8 @@ Status: current app
 - App creates active problem sets.
 - Learner works problems in real time.
 - Live coach detects partial progress and common mistakes.
-- Submissions update mastery, confidence, attempts, activity, and repair queue.
+- AI-style guide reveals solution steps progressively when the learner is stuck.
+- Submissions update mastery, confidence, support used, attempts, activity, and repair queue.
 
 ## Phase 2: Math-Aware Checking
 
@@ -39,3 +40,4 @@ Status: current app
 - Explain mistakes in multiple styles.
 - Summarize learner progress.
 - Suggest new problem variants for human review.
+- Move guided solution generation behind a backend API instead of a browser-only template function.

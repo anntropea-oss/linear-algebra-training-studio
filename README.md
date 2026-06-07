@@ -14,6 +14,7 @@ npm run dev
 - Choose a starting point: brand new, systems, matrices, or advanced review.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
+- Ask for AI-style guided steps when you do not know how to start.
 - Submit attempts and update mastery/confidence.
 - See concept progress, recent attempts, and a repair queue.
 - Persist the learner profile in local browser storage.

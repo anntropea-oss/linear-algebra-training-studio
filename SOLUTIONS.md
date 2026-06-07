@@ -157,3 +157,19 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `curl -I https://mean-brooms-pump.loca.lt` returned `HTTP/1.1 200 OK`, and `curl -L --max-time 15 https://mean-brooms-pump.loca.lt` returned `200` with the app HTML.
+
+## [2026-06-06 22:05] Ungated Solutions And Untracked Support Use
+- Problem: The app showed full worked solution steps before the learner asked for help, and submitted attempts did not record how many hints or guided steps were used.
+- Root Cause: The scratch MVP exposed `solutionSteps` as a static panel and `submitResponse` only accepted the final response text.
+- Solution: Added `createGuidedSolution(...)` to produce progressive AI-style guidance from verified problem templates, replaced the always-visible worked path with a guided reveal panel, added an `I don't know yet` action, and passed hint/guide counts into submitted progress and attempt records.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/App.tsx`, `src/App.css`, `README.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after the guided-solution changes.
+
+## [2026-06-06 22:07] Guided Solution Browser Verification Workaround
+- Problem: In-app browser verification for the guided solution UI failed again with `Browser is not available: iab`, and the prior public tunnel `https://mean-brooms-pump.loca.lt` returned `408`.
+- Root Cause: No session-owned in-app browser backend was available; the localtunnel session became stale while the local Vite server stayed healthy.
+- Solution: Verified the feature with production build, lint, diff checks, and local Vite server responses, then stopped the stale localtunnel process.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `npm run build`, `npm run lint`, `git diff --check`, `curl -I http://127.0.0.1:5173/`, and `curl -L --max-time 15 http://127.0.0.1:5173/` completed successfully.
