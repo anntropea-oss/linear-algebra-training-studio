@@ -93,3 +93,51 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `curl -I https://six-wings-walk.loca.lt` returned `HTTP/1.1 200 OK`.
+
+## [2026-06-06 21:20] Assignment Map Type Mismatch
+- Problem: `npm run build` failed after converting assignments into multi-set records because `loadTrainingSnapshot` still accepted `Record<string, Assignment>` while the app now passes `Record<string, Assignment[]>`.
+- Root Cause: The persistence loader signature was not updated during the active problem-set migration.
+- Solution: Updated `loadTrainingSnapshot` to accept `Record<string, Assignment[]>` and kept the loader's migration path for older single-assignment snapshots.
+- Files Changed: `src/data/persistence.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build` and `npm run lint` completed successfully after the signature fix.
+
+## [2026-06-06 21:38] Scratch Tutor Build Errors
+- Problem: The first scratch rebuild failed `npm run build` and `npm run lint` because `src/App.tsx` had an unused `getProblem` import, an unused `updateProfile` helper, a custom CSS property that needed typing, and a React lint violation from setting answer state inside an effect.
+- Root Cause: The old dashboard state pattern was replaced quickly, leaving stale imports and effect-based answer synchronization.
+- Solution: Removed the unused import/helper, typed the `--value` meter style, and replaced effect-synced answer state with per-problem draft and hint maps.
+- Files Changed: `src/App.tsx`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build` and `npm run lint` completed successfully after the scratch tutor fixes.
+
+## [2026-06-06 21:47] Prototype Drift From Learner Tutor Goal
+- Problem: The prior prototype and planning docs over-weighted instructor dashboards, reporting, and backend administration before the core learner experience supported real-time problem solving.
+- Root Cause: The initial scope mixed long-term training operations with the immediate pedagogical requirement: help a learner work linear algebra problems from their current level and understand mistakes while solving.
+- Solution: Rebuilt the app around a learner-facing active problem-set loop, added a tutor engine and local learner storage, removed backend-heavy prototype modules/docs, and documented the restart rationale in `docs/REBUILD_ANALYSIS.md`.
+- Files Changed: `README.md`, `docs/REBUILD_ANALYSIS.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `docs/CURRICULUM_SKILL_MAP.md`, `docs/MVP_ROADMAP.md`, `src/App.tsx`, `src/App.css`, `src/domain/tutorEngine.ts`, `src/domain/storage.ts`, `package.json`, `package-lock.json`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The rebuilt app now opens on starting-point selection, active problem sets, live feedback, hints, worked solution steps, repair sets, recent attempts, activity logs, and concept progress instead of an instructor/admin dashboard.
+
+## [2026-06-06 21:48] In-App Browser Verification Still Unavailable
+- Problem: Final browser verification for the scratch tutor rebuild could not run because the Browser plugin again reported `Browser is not available: iab`.
+- Root Cause: No session-owned in-app browser backend was available to the current thread.
+- Solution: Kept the existing workaround path: verified the rebuilt app with production build, lint, git diff checks, and a local Vite server `200 OK` response.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: Browser setup failed with `Browser is not available: iab`; `npm run build`, `npm run lint`, `git diff --check`, and `curl -I http://127.0.0.1:5173/` completed successfully.
+
+## [2026-06-06 21:50] Pull Request Body Shell Quoting Error
+- Problem: The first `gh pr create` command emitted `zsh:1: command not found: Browser` and produced a malformed PR note because a backticked browser error inside the double-quoted shell argument was interpreted by the shell.
+- Root Cause: Shell command substitution ran before GitHub CLI received the PR body text.
+- Solution: Edited PR #8 with a single-quoted body that avoids command substitution and preserves the intended browser-verification note.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `gh pr edit 8 --body ...` succeeded and returned the PR URL.
+
+## [2026-06-06 21:52] Public Demo Tunnel Expired Again
+- Problem: The previous public demo URL `https://six-wings-walk.loca.lt` returned `503 Service Unavailable`, and no localtunnel process was running.
+- Root Cause: The prior ephemeral localtunnel process stopped.
+- Solution: Started a fresh localtunnel session for the rebuilt Vite app at `https://sweet-tires-fail.loca.lt`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `curl -I https://sweet-tires-fail.loca.lt` returned `HTTP/1.1 200 OK`.

@@ -2,50 +2,56 @@
 
 ## Objective
 
-Build a personalized linear algebra training system that places learners by current understanding, adapts practice based on evidence, creates individualized homework, and records enough detail to improve instruction over time.
+Build a real-time linear algebra tutor that lets a learner start anywhere, solve problems immediately, receive feedback while working, and build a durable record of mastery, mistakes, repairs, and next steps.
 
-## Core Product Loop
+## Core Loop
 
-1. Diagnose the learner across the skill graph.
-2. Build an initial mastery profile by skill, confidence, and misconception risk.
-3. Generate practice and homework from verified problem templates.
-4. Record attempts, mistakes, hints, corrections, time, confidence, and instructor notes.
-5. Update mastery and assign spaced review.
-6. Show learner and instructor progress with charts, progress bars, and logs.
+1. Learner chooses a starting point.
+2. App creates an adaptive problem set for that point.
+3. Learner works in the answer box.
+4. Live coach reacts to the answer in real time.
+5. Learner submits the attempt.
+6. App updates mastery, confidence, mistake records, repair queue, and next problem set recommendations.
 
-## Primary Users
+## Primary Experience
 
-- Learner: completes diagnostics, practice, homework, and reflection.
-- Instructor: reviews progress, mistakes, assignment history, and recommended next steps.
-- Admin or curriculum author: manages skills, templates, rubrics, and reporting settings.
+The first screen is not an instructor dashboard. It is a learning cockpit:
 
-## MVP Scope
+- starting point selector
+- concept path
+- active problem sets
+- live coach feedback
+- hints and worked solution steps
+- repair queue
+- progress by concept
+- recent attempts and activity
 
-- Multi-user local dashboard.
-- Linear algebra skill graph.
-- Sample learner profiles.
-- Adaptive assignment generator.
-- Downloadable homework handout.
-- Mistake and activity logs.
-- Practice result logger.
+## Instructional Model
 
-## Future Scope
+The app should care about evidence:
 
-- User accounts and persistent records.
-- Diagnostic testing engine.
-- Rubric-based grading.
-- PDF generation.
-- Instructor comments and overrides.
-- Template authoring tools.
-- Cohort analytics.
-- Spaced repetition scheduler.
-- AI-assisted explanation generation with human-reviewed problem templates.
+- what answer the learner tried
+- what concept the problem tests
+- what mistake pattern appeared
+- whether the learner needed hints
+- whether the next problem should repair, review, or challenge
 
-## Product Principles
+## Current MVP
 
-- Track learning evidence, not just grades.
-- Separate conceptual mistakes from arithmetic mistakes.
-- Prefer verified problem templates before open-ended AI generation.
-- Make progress visible, but do not gamify in a way that rewards rushing.
-- Preserve the full learning record so instructors can identify patterns.
-- Let instructors override recommendations when human context matters.
+- Single learner profile persisted locally.
+- Multiple active problem sets.
+- Real-time response evaluation.
+- Adaptive, repair, and challenge set generation.
+- Mistake detection for common early patterns.
+- Mastery and confidence tracking by concept.
+- Repair queue with resolution.
+
+## Next Product Step
+
+Replace keyword scoring with stronger math-aware evaluation:
+
+- structured numeric parsing
+- vector/matrix answer normalization
+- step-by-step work capture
+- instructor-reviewed rubrics
+- optional AI explanation layer over verified problem templates

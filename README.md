@@ -1,6 +1,6 @@
-# Linear Algebra Training Studio
+# Linear Algebra Live Tutor
 
-A freestanding React prototype for personalized linear algebra training. The app tracks multiple learners, shows mastery and confidence by skill, generates adaptive homework, downloads homework as an HTML handout with an answer key, and logs practice, mistakes, assignments, and downloads.
+A freestanding React app for learning linear algebra from any starting point. The app creates active problem sets, gives real-time feedback while the learner works, tracks mistakes and progress, and adapts the next set toward repair, review, or challenge.
 
 ## Run Locally
 
@@ -9,37 +9,30 @@ npm install
 npm run dev
 ```
 
-## What Is Included
+## Current Experience
 
-- Multi-learner dashboard with sample learner profiles.
-- Linear algebra skill graph organized by prerequisite stage.
-- Mastery, confidence, streak, weekly work, and review queue metrics.
-- Assignment generator based on weak skills, recent mistakes, confidence, prerequisite gaps, and review debt.
-- Downloadable HTML homework handouts with hints and answer keys.
-- Practice logger that updates mastery and records mistake evidence.
-- Learning log and correction queue.
+- Choose a starting point: brand new, systems, matrices, or advanced review.
+- Work active problem sets in the browser.
+- Get live coaching as you type.
+- Submit attempts and update mastery/confidence.
+- See concept progress, recent attempts, and a repair queue.
+- Persist the learner profile in local browser storage.
 
 ## Planning Docs
 
 - [Product Blueprint](/Users/atropea/Documents/Linear%20Algebra/docs/PRODUCT_BLUEPRINT.md)
-- [Curriculum Skill Map](/Users/atropea/Documents/Linear%20Algebra/docs/CURRICULUM_SKILL_MAP.md)
-- [Data Model](/Users/atropea/Documents/Linear%20Algebra/docs/DATA_MODEL.md)
-- [MVP Roadmap](/Users/atropea/Documents/Linear%20Algebra/docs/MVP_ROADMAP.md)
 - [Pedagogy Notes](/Users/atropea/Documents/Linear%20Algebra/docs/PEDAGOGY_NOTES.md)
-- [GitHub Setup](/Users/atropea/Documents/Linear%20Algebra/docs/GITHUB_SETUP.md)
-- [Misconception Taxonomy](/Users/atropea/Documents/Linear%20Algebra/docs/MISCONCEPTION_TAXONOMY.md)
-- [Problem Template Library](/Users/atropea/Documents/Linear%20Algebra/docs/PROBLEM_TEMPLATE_LIBRARY.md)
-- [Diagnostic Engine](/Users/atropea/Documents/Linear%20Algebra/docs/DIAGNOSTIC_ENGINE.md)
-- [Persistence Plan](/Users/atropea/Documents/Linear%20Algebra/docs/PERSISTENCE_PLAN.md)
-- [Learner Submissions](/Users/atropea/Documents/Linear%20Algebra/docs/LEARNER_SUBMISSIONS.md)
-- [Instructor Analytics](/Users/atropea/Documents/Linear%20Algebra/docs/INSTRUCTOR_ANALYTICS.md)
-- [PostgreSQL Schema](/Users/atropea/Documents/Linear%20Algebra/docs/database/schema.sql)
+- [Curriculum Skill Map](/Users/atropea/Documents/Linear%20Algebra/docs/CURRICULUM_SKILL_MAP.md)
+- [Rebuild Analysis](/Users/atropea/Documents/Linear%20Algebra/docs/REBUILD_ANALYSIS.md)
+- [Tracking Plan](/Users/atropea/Documents/Linear%20Algebra/docs/TRACKING_PLAN.md)
+- [Solution Log](/Users/atropea/Documents/Linear%20Algebra/SOLUTIONS.md)
 
 ## Next Engineering Step
 
-The prototype is currently local-first and in-memory. The next major step is to add persistence:
+Add math-aware answer parsing and richer problem authoring:
 
-- PostgreSQL tables for learners, skills, assignments, attempts, mistakes, and events.
-- Authentication and roles for learners, instructors, and administrators.
-- Server-side PDF generation for homework exports.
-- A verified problem-template library with tagged skills, difficulty, hints, and solutions.
+- vector and matrix equivalence checks
+- step-based submissions
+- larger verified problem bank
+- adaptive difficulty within each active set
+- optional AI explanations grounded in verified solutions
