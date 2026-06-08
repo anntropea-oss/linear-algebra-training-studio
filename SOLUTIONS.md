@@ -237,3 +237,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `npm run build`, `npm run lint`, `git diff --check`, and `curl -I http://127.0.0.1:5173/` completed successfully.
+
+## [2026-06-07 22:24] Caffeinate Process Exited
+- Problem: The background `caffeinate` process started to keep the machine awake was no longer running during the final milestone check.
+- Root Cause: Unknown; PID `21466` was no longer present.
+- Solution: Restarted `caffeinate -dimsu` in the background with PID `24803`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `ps -p $(cat /tmp/linear-algebra-caffeinate.pid) -o pid=,command=` showed `24803 caffeinate -dimsu`.
