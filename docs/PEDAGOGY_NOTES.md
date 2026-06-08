@@ -71,6 +71,10 @@ The current diagnostic is short and conceptual. It should be used as a routing s
 
 Each concept has prerequisites from the concept graph. A concept is considered ready when prerequisite lessons are complete and prerequisite mastery is at least developing. This gives the tutor a reason to route backward when a learner is stuck.
 
+## University-Level Coverage
+
+The course map now includes the topics a first serious linear algebra course expects: determinants, inverses, the four fundamental subspaces, rank-nullity, orthogonality, least squares, eigenvalues, change of basis, diagonalization, and proof habits. The next instructional risk is depth, not breadth: each topic needs more problems, more representations, and more misconception-specific repair paths.
+
 ## What Still Needs Depth
 
 - Better parsing for equivalent algebraic answers.

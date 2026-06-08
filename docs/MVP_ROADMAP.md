@@ -13,6 +13,7 @@ Status: current app
 - Live coach detects partial progress and common mistakes.
 - AI-style guide reveals solution steps progressively when the learner is stuck.
 - Submissions update mastery, confidence, support used, attempts, activity, and repair queue.
+- The concept map now covers the major university-level linear algebra arc.
 
 ## Phase 2: Math-Aware Checking
 
@@ -31,11 +32,12 @@ Status: current app
 
 ## Phase 3: Bigger Verified Curriculum
 
-- Add more problems per concept.
+- Add multiple problems per concept.
 - Add variants by difficulty.
 - Add repair sets for every misconception.
 - Add mixed review sets.
 - Add application problems.
+- Add transfer and proof problems for advanced topics.
 
 ## Phase 4: Durable Accounts
 

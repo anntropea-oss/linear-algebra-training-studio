@@ -4,9 +4,17 @@ export type ConceptId =
   | 'systems'
   | 'row-reduction'
   | 'matrix-transformations'
+  | 'determinants'
+  | 'inverses'
   | 'subspaces'
+  | 'fundamental-subspaces'
+  | 'rank-nullity'
   | 'orthogonality'
+  | 'least-squares'
   | 'eigenvalues'
+  | 'change-of-basis'
+  | 'diagonalization'
+  | 'proof-techniques'
 
 export type SetMode = 'adaptive' | 'repair' | 'challenge'
 
@@ -256,6 +264,22 @@ export const concepts: Concept[] = [
     target: 'Connect matrix columns to how space moves.',
   },
   {
+    id: 'determinants',
+    title: 'Determinants and Area Scaling',
+    shortTitle: 'Determinants',
+    level: 3,
+    prerequisites: ['matrix-transformations', 'row-reduction'],
+    target: 'Use determinants to detect invertibility and measure signed scaling.',
+  },
+  {
+    id: 'inverses',
+    title: 'Inverses and Matrix Equations',
+    shortTitle: 'Inverses',
+    level: 3,
+    prerequisites: ['row-reduction', 'matrix-transformations'],
+    target: 'Decide when a matrix can undo a transformation and solve Ax = b.',
+  },
+  {
     id: 'subspaces',
     title: 'Subspaces, Basis, and Dimension',
     shortTitle: 'Subspaces',
@@ -264,20 +288,68 @@ export const concepts: Concept[] = [
     target: 'Verify subspaces and describe them with efficient bases.',
   },
   {
+    id: 'fundamental-subspaces',
+    title: 'Column Space, Null Space, Row Space, and Left Null Space',
+    shortTitle: '4 Subspaces',
+    level: 4,
+    prerequisites: ['subspaces', 'row-reduction'],
+    target: 'Connect a matrix to the four subspaces that organize its behavior.',
+  },
+  {
+    id: 'rank-nullity',
+    title: 'Rank-Nullity and Dimension Accounting',
+    shortTitle: 'Rank-Nullity',
+    level: 4,
+    prerequisites: ['fundamental-subspaces'],
+    target: 'Use dimension relationships to explain pivots, freedom, and solution shape.',
+  },
+  {
     id: 'orthogonality',
     title: 'Orthogonality and Projections',
     shortTitle: 'Projection',
-    level: 4,
+    level: 5,
     prerequisites: ['vectors', 'subspaces'],
     target: 'Use dot products to measure perpendicularity and closest vectors.',
+  },
+  {
+    id: 'least-squares',
+    title: 'Least Squares and Best Approximation',
+    shortTitle: 'Least Squares',
+    level: 6,
+    prerequisites: ['orthogonality', 'systems'],
+    target: 'Approximate inconsistent systems with projections and normal equations.',
   },
   {
     id: 'eigenvalues',
     title: 'Eigenvalues and Eigenvectors',
     shortTitle: 'Eigen',
-    level: 5,
-    prerequisites: ['matrix-transformations', 'subspaces'],
+    level: 6,
+    prerequisites: ['determinants', 'matrix-transformations', 'subspaces'],
     target: 'Find directions that stay on their own line under a transformation.',
+  },
+  {
+    id: 'change-of-basis',
+    title: 'Change of Basis and Coordinates',
+    shortTitle: 'Basis Change',
+    level: 6,
+    prerequisites: ['subspaces', 'matrix-transformations'],
+    target: 'Translate vectors and transformations between coordinate systems.',
+  },
+  {
+    id: 'diagonalization',
+    title: 'Diagonalization and Powers of Matrices',
+    shortTitle: 'Diagonalize',
+    level: 7,
+    prerequisites: ['eigenvalues', 'change-of-basis'],
+    target: 'Use eigenvectors as a basis to simplify repeated matrix action.',
+  },
+  {
+    id: 'proof-techniques',
+    title: 'Proof Techniques for Linear Algebra',
+    shortTitle: 'Proofs',
+    level: 7,
+    prerequisites: ['subspaces', 'rank-nullity'],
+    target: 'Write clear arguments from definitions, counterexamples, and dimension facts.',
   },
 ]
 
@@ -478,6 +550,84 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
       'Can you multiply a 2 by 2 matrix by a vector?',
     ],
   },
+  determinants: {
+    conceptId: 'determinants',
+    bigIdea:
+      'A determinant is a signed scaling factor: it tells how a square matrix changes area, volume, or orientation.',
+    whyItMatters:
+      'Determinants give a fast test for invertibility and connect row reduction, geometry, and eigenvalue computations.',
+    definitions: [
+      {
+        term: 'Determinant',
+        meaning: 'A scalar attached to a square matrix that measures signed scaling.',
+      },
+      {
+        term: 'Singular',
+        meaning: 'A square matrix with determinant zero, so it collapses space.',
+      },
+      {
+        term: 'Orientation',
+        meaning: 'The handedness of space; a negative determinant flips it.',
+      },
+    ],
+    theory: [
+      'For a 2 by 2 matrix [[a, b], [c, d]], the determinant is ad - bc.',
+      'A determinant of zero means the columns are dependent and the matrix is not invertible.',
+      'Row swaps flip the determinant sign; scaling a row scales the determinant.',
+    ],
+    workedExample: {
+      prompt: 'Find det([[2, 1], [3, 4]]).',
+      steps: [
+        'Use ad - bc.',
+        'Compute 2(4) - 1(3).',
+        'The determinant is 8 - 3 = 5.',
+      ],
+      takeaway: 'A nonzero determinant means this 2 by 2 matrix is invertible.',
+    },
+    readinessChecks: [
+      'Can you compute a 2 by 2 determinant?',
+      'Can you explain why determinant zero means lost dimension?',
+    ],
+  },
+  inverses: {
+    conceptId: 'inverses',
+    bigIdea:
+      'An inverse matrix undoes a transformation: applying A and then A inverse gets you back where you started.',
+    whyItMatters:
+      'Inverses solve matrix equations, but only when the transformation has not collapsed information.',
+    definitions: [
+      {
+        term: 'Inverse',
+        meaning: 'A matrix A inverse where A inverse A = I and A A inverse = I.',
+      },
+      {
+        term: 'Identity matrix',
+        meaning: 'The matrix that leaves every vector unchanged.',
+      },
+      {
+        term: 'Invertible',
+        meaning: 'A square matrix with an inverse.',
+      },
+    ],
+    theory: [
+      'A matrix is invertible exactly when Ax = b has a unique solution for every b.',
+      'For square matrices, invertible is equivalent to having pivots in every column.',
+      'If det(A) = 0, A has no inverse.',
+    ],
+    workedExample: {
+      prompt: 'If A inverse exists and Ax = b, how do you solve for x?',
+      steps: [
+        'Start with Ax = b.',
+        'Multiply both sides by A inverse on the left.',
+        'A inverse A x = A inverse b, so x = A inverse b.',
+      ],
+      takeaway: 'An inverse lets you undo A, but the order of multiplication matters.',
+    },
+    readinessChecks: [
+      'Can you state what an inverse matrix does?',
+      'Can you connect invertibility to pivots or determinant?',
+    ],
+  },
   subspaces: {
     conceptId: 'subspaces',
     bigIdea:
@@ -515,6 +665,84 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
     readinessChecks: [
       'Can you test whether zero is in a set?',
       'Can you explain closure under addition and scalar multiplication?',
+    ],
+  },
+  'fundamental-subspaces': {
+    conceptId: 'fundamental-subspaces',
+    bigIdea:
+      'Every matrix organizes information into four linked spaces: column space, null space, row space, and left null space.',
+    whyItMatters:
+      'These spaces explain what Ax can reach, what Ax sends to zero, and how equations fail or succeed.',
+    definitions: [
+      {
+        term: 'Column space',
+        meaning: 'All vectors reachable as Ax.',
+      },
+      {
+        term: 'Null space',
+        meaning: 'All input vectors x where Ax = 0.',
+      },
+      {
+        term: 'Row space',
+        meaning: 'The span of the rows of a matrix.',
+      },
+    ],
+    theory: [
+      'The column space lives in the output space; the null space lives in the input space.',
+      'Pivot columns of the original matrix form a basis for the column space.',
+      'Free variables describe the null space.',
+    ],
+    workedExample: {
+      prompt: 'For A = [[1, 2], [0, 0]], what is the null space condition?',
+      steps: [
+        'Solve Ax = 0.',
+        'The equation is x1 + 2x2 = 0.',
+        'So x1 = -2x2, giving multiples of (-2, 1).',
+      ],
+      takeaway: 'The null space records inputs that the matrix collapses to zero.',
+    },
+    readinessChecks: [
+      'Can you distinguish input space from output space?',
+      'Can you explain what Ax = 0 means geometrically?',
+    ],
+  },
+  'rank-nullity': {
+    conceptId: 'rank-nullity',
+    bigIdea:
+      'Rank-nullity is dimension bookkeeping: pivot directions plus free directions equal the number of input variables.',
+    whyItMatters:
+      'It lets you reason about solution sets and transformations without solving every detail from scratch.',
+    definitions: [
+      {
+        term: 'Rank',
+        meaning: 'The dimension of the column space.',
+      },
+      {
+        term: 'Nullity',
+        meaning: 'The dimension of the null space.',
+      },
+      {
+        term: 'Rank-nullity theorem',
+        meaning: 'For an m by n matrix, rank(A) + nullity(A) = n.',
+      },
+    ],
+    theory: [
+      'Rank counts pivot variables; nullity counts free variables.',
+      'The number n in rank-nullity is the number of columns, or input coordinates.',
+      'A larger nullity means more directions collapse to zero.',
+    ],
+    workedExample: {
+      prompt: 'A 3 by 5 matrix has rank 3. What is its nullity?',
+      steps: [
+        'Use rank + nullity = number of columns.',
+        'So 3 + nullity = 5.',
+        'The nullity is 2.',
+      ],
+      takeaway: 'Rank-nullity tracks how input dimensions split into pivots and freedom.',
+    },
+    readinessChecks: [
+      'Can you identify whether to use rows or columns in rank-nullity?',
+      'Can you connect free variables to nullity?',
     ],
   },
   orthogonality: {
@@ -556,6 +784,45 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
       'Can you explain what dot product zero means geometrically?',
     ],
   },
+  'least-squares': {
+    conceptId: 'least-squares',
+    bigIdea:
+      'Least squares solves inconsistent systems by finding the closest possible fit.',
+    whyItMatters:
+      'It is the linear algebra behind regression, data fitting, and approximate solutions when exact equations conflict.',
+    definitions: [
+      {
+        term: 'Residual',
+        meaning: 'The error vector b - Ax.',
+      },
+      {
+        term: 'Least squares solution',
+        meaning: 'A vector x that minimizes the length of b - Ax.',
+      },
+      {
+        term: 'Normal equations',
+        meaning: 'The equations A^T A x = A^T b.',
+      },
+    ],
+    theory: [
+      'The best approximation projects b onto the column space of A.',
+      'At the best fit, the residual is orthogonal to every column of A.',
+      'The normal equations encode that orthogonality condition.',
+    ],
+    workedExample: {
+      prompt: 'What condition does a least-squares residual satisfy?',
+      steps: [
+        'Let r = b - Ax.',
+        'At the best fit, r is perpendicular to the column space of A.',
+        'That means A^T r = 0, so A^T A x = A^T b.',
+      ],
+      takeaway: 'Least squares turns best fit into an orthogonality equation.',
+    },
+    readinessChecks: [
+      'Can you identify the residual vector?',
+      'Can you explain why best approximation uses orthogonality?',
+    ],
+  },
   eigenvalues: {
     conceptId: 'eigenvalues',
     bigIdea:
@@ -593,6 +860,123 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
     readinessChecks: [
       'Can you state why eigenvectors must be nonzero?',
       'Can you recognize the scalar lambda in Av = lambda v?',
+    ],
+  },
+  'change-of-basis': {
+    conceptId: 'change-of-basis',
+    bigIdea:
+      'Changing basis means describing the same vector with different coordinate measuring sticks.',
+    whyItMatters:
+      'A smart basis can make transformations simpler, reveal structure, and make diagonalization possible.',
+    definitions: [
+      {
+        term: 'Coordinate vector',
+        meaning: 'The list of weights needed to build a vector from a chosen basis.',
+      },
+      {
+        term: 'Change-of-basis matrix',
+        meaning: 'A matrix that translates coordinates from one basis to another.',
+      },
+      {
+        term: 'Similarity',
+        meaning: 'Two matrices related by A = P D P inverse, representing the same transformation in different bases.',
+      },
+    ],
+    theory: [
+      'Coordinates depend on the basis, but the vector itself does not.',
+      'If P has basis vectors as columns, then x = P[x]_B.',
+      'Changing basis often turns a hard-looking matrix into a simpler one.',
+    ],
+    workedExample: {
+      prompt: 'If basis B is {(2, 0), (0, 3)}, what are the B-coordinates of (4, 6)?',
+      steps: [
+        'Find weights a and b with a(2, 0) + b(0, 3) = (4, 6).',
+        'Match coordinates: 2a = 4 and 3b = 6.',
+        'So [x]_B = (2, 2).',
+      ],
+      takeaway: 'Coordinates are weights relative to the chosen basis.',
+    },
+    readinessChecks: [
+      'Can you distinguish a vector from its coordinates?',
+      'Can you build a vector from basis weights?',
+    ],
+  },
+  diagonalization: {
+    conceptId: 'diagonalization',
+    bigIdea:
+      'Diagonalization uses eigenvectors as a basis so a matrix acts like simple coordinate-by-coordinate scaling.',
+    whyItMatters:
+      'It makes matrix powers, repeated processes, and many differential or discrete systems easier to understand.',
+    definitions: [
+      {
+        term: 'Diagonalizable',
+        meaning: 'A matrix with enough independent eigenvectors to form a basis.',
+      },
+      {
+        term: 'Eigenbasis',
+        meaning: 'A basis made of eigenvectors.',
+      },
+      {
+        term: 'Diagonal matrix',
+        meaning: 'A matrix with nonzero entries only on the main diagonal.',
+      },
+    ],
+    theory: [
+      'If A = P D P inverse, then the columns of P are eigenvectors and D contains eigenvalues.',
+      'A diagonal matrix is easy to power: raise each diagonal entry to the power.',
+      'A matrix can have eigenvalues but still fail to be diagonalizable if it lacks enough eigenvectors.',
+    ],
+    workedExample: {
+      prompt: 'If A = P D P inverse, what is A squared?',
+      steps: [
+        'Compute A^2 = (P D P inverse)(P D P inverse).',
+        'The middle P inverse P becomes I.',
+        'So A^2 = P D^2 P inverse.',
+      ],
+      takeaway: 'Diagonalization makes repeated multiplication simple.',
+    },
+    readinessChecks: [
+      'Can you identify P and D in A = P D P inverse?',
+      'Can you explain why eigenvectors make a diagonal basis?',
+    ],
+  },
+  'proof-techniques': {
+    conceptId: 'proof-techniques',
+    bigIdea:
+      'Linear algebra proofs turn definitions into arguments, often by proving closure, independence, spanning, or dimension facts.',
+    whyItMatters:
+      'Proof skill separates procedural calculation from real mathematical understanding.',
+    definitions: [
+      {
+        term: 'Direct proof',
+        meaning: 'A proof that starts from assumptions and applies definitions to reach the claim.',
+      },
+      {
+        term: 'Counterexample',
+        meaning: 'A single example showing that a universal claim is false.',
+      },
+      {
+        term: 'If and only if',
+        meaning: 'A statement requiring proof in both directions.',
+      },
+    ],
+    theory: [
+      'Most subspace proofs require zero, closure under addition, and closure under scalar multiplication.',
+      'To prove independence, start with a linear combination equal to zero and show all coefficients are zero.',
+      'To disprove a statement, one clear counterexample is enough.',
+    ],
+    workedExample: {
+      prompt: 'How would you disprove "every set containing zero is a subspace"?',
+      steps: [
+        'Find a set that contains zero but fails closure.',
+        'For example, {(0, 0), (1, 0)} contains zero.',
+        'But (1, 0) + (1, 0) = (2, 0), which is not in the set.',
+      ],
+      takeaway: 'A counterexample must satisfy the setup and break the conclusion.',
+    },
+    readinessChecks: [
+      'Can you name the three subspace proof checks?',
+      'Can you explain why one counterexample disproves a universal claim?',
     ],
   },
 }
@@ -669,6 +1053,32 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     feedback: 'Matrix columns are the images of the standard basis vectors.',
   },
   {
+    id: 'diag-det',
+    conceptId: 'determinants',
+    prompt: 'What is det([[1, 2], [3, 4]])?',
+    choices: [
+      { id: 'a', label: '-2' },
+      { id: 'b', label: '10' },
+      { id: 'c', label: '2' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'determinants',
+    feedback: 'For [[a, b], [c, d]], the determinant is ad - bc.',
+  },
+  {
+    id: 'diag-inverse',
+    conceptId: 'inverses',
+    prompt: 'If a square matrix has determinant zero, what can you conclude?',
+    choices: [
+      { id: 'a', label: 'It is not invertible' },
+      { id: 'b', label: 'It is always the identity' },
+      { id: 'c', label: 'It has no columns' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'inverses',
+    feedback: 'A determinant of zero means the matrix collapses information and has no inverse.',
+  },
+  {
     id: 'diag-subspace',
     conceptId: 'subspaces',
     prompt: 'Why is {(x, y): x + y = 1} not a subspace of R2?',
@@ -680,6 +1090,32 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     correctChoiceId: 'a',
     repairIfMissed: 'subspaces',
     feedback: 'Every subspace must contain the zero vector.',
+  },
+  {
+    id: 'diag-four-subspaces',
+    conceptId: 'fundamental-subspaces',
+    prompt: 'Which space contains all vectors b that can be written as Ax?',
+    choices: [
+      { id: 'a', label: 'Column space' },
+      { id: 'b', label: 'Null space' },
+      { id: 'c', label: 'Left null space only' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'fundamental-subspaces',
+    feedback: 'The column space is the set of all reachable outputs Ax.',
+  },
+  {
+    id: 'diag-rank-nullity',
+    conceptId: 'rank-nullity',
+    prompt: 'A matrix has 6 columns and rank 4. What is its nullity?',
+    choices: [
+      { id: 'a', label: '2' },
+      { id: 'b', label: '4' },
+      { id: 'c', label: '10' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'rank-nullity',
+    feedback: 'Rank plus nullity equals the number of columns.',
   },
   {
     id: 'diag-orth',
@@ -695,6 +1131,19 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     feedback: 'Dot product zero means perpendicular directions.',
   },
   {
+    id: 'diag-least-squares',
+    conceptId: 'least-squares',
+    prompt: 'In least squares, what is minimized?',
+    choices: [
+      { id: 'a', label: 'The length of the residual b - Ax' },
+      { id: 'b', label: 'The number of rows only' },
+      { id: 'c', label: 'The determinant of b' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'least-squares',
+    feedback: 'Least squares minimizes the residual error when Ax = b cannot be solved exactly.',
+  },
+  {
     id: 'diag-eigen',
     conceptId: 'eigenvalues',
     prompt: 'If Av = -2v for nonzero v, what is the eigenvalue?',
@@ -706,6 +1155,45 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     correctChoiceId: 'a',
     repairIfMissed: 'eigenvalues',
     feedback: 'The eigenvalue is the scalar multiplying the eigenvector.',
+  },
+  {
+    id: 'diag-change-basis',
+    conceptId: 'change-of-basis',
+    prompt: 'What changes when you change basis?',
+    choices: [
+      { id: 'a', label: 'The coordinates describing a vector' },
+      { id: 'b', label: 'The vector itself disappears' },
+      { id: 'c', label: 'Only the number of rows' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'change-of-basis',
+    feedback: 'Changing basis changes coordinate descriptions, not the underlying vector.',
+  },
+  {
+    id: 'diag-diagonalization',
+    conceptId: 'diagonalization',
+    prompt: 'What must a matrix have to be diagonalizable?',
+    choices: [
+      { id: 'a', label: 'Enough independent eigenvectors to form a basis' },
+      { id: 'b', label: 'Only one row' },
+      { id: 'c', label: 'A zero determinant in every case' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'diagonalization',
+    feedback: 'Diagonalization needs an eigenbasis.',
+  },
+  {
+    id: 'diag-proofs',
+    conceptId: 'proof-techniques',
+    prompt: 'What is enough to disprove a statement that says "for every vector..."?',
+    choices: [
+      { id: 'a', label: 'One valid counterexample' },
+      { id: 'b', label: 'A longer calculation with no example' },
+      { id: 'c', label: 'Repeating the statement' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'proof-techniques',
+    feedback: 'A universal claim is false if one counterexample satisfies the setup and breaks the conclusion.',
   },
 ]
 
@@ -850,6 +1338,62 @@ export const lessonCheckLibrary: Record<ConceptId, LessonCheckQuestion[]> = {
       incorrectFeedback: 'The first column records where e1 goes.',
     },
   ],
+  determinants: [
+    {
+      id: 'det-check-1',
+      conceptId: 'determinants',
+      prompt: 'What does determinant zero mean geometrically?',
+      choices: [
+        { id: 'a', label: 'The transformation collapses dimension' },
+        { id: 'b', label: 'The matrix is always diagonal' },
+        { id: 'c', label: 'Every vector gets longer' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Zero determinant means space is flattened in some direction.',
+      incorrectFeedback: 'Determinant zero means the transformation loses dimension.',
+    },
+    {
+      id: 'det-check-2',
+      conceptId: 'determinants',
+      prompt: 'What is det([[a, b], [c, d]])?',
+      choices: [
+        { id: 'a', label: 'ad - bc' },
+        { id: 'b', label: 'ab - cd' },
+        { id: 'c', label: 'a + b + c + d' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. The 2 by 2 determinant is ad - bc.',
+      incorrectFeedback: 'For a 2 by 2 matrix, multiply diagonals as ad - bc.',
+    },
+  ],
+  inverses: [
+    {
+      id: 'inverse-check-1',
+      conceptId: 'inverses',
+      prompt: 'What does A inverse do to A?',
+      choices: [
+        { id: 'a', label: 'It undoes A and gives the identity' },
+        { id: 'b', label: 'It deletes every row' },
+        { id: 'c', label: 'It changes vectors into scalars only' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. A inverse A = I.',
+      incorrectFeedback: 'An inverse undoes the action of the original matrix.',
+    },
+    {
+      id: 'inverse-check-2',
+      conceptId: 'inverses',
+      prompt: 'Which condition blocks invertibility?',
+      choices: [
+        { id: 'a', label: 'A missing pivot' },
+        { id: 'b', label: 'Having square shape' },
+        { id: 'c', label: 'Having nonzero determinant' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. A missing pivot means some information is lost.',
+      incorrectFeedback: 'Invertible square matrices have pivots in every column.',
+    },
+  ],
   subspaces: [
     {
       id: 'subspace-check-1',
@@ -876,6 +1420,62 @@ export const lessonCheckLibrary: Record<ConceptId, LessonCheckQuestion[]> = {
       correctChoiceId: 'a',
       correctFeedback: 'Yes. Basis means spanning plus independent.',
       incorrectFeedback: 'A basis is an efficient, non-redundant spanning set.',
+    },
+  ],
+  'fundamental-subspaces': [
+    {
+      id: 'four-subspaces-check-1',
+      conceptId: 'fundamental-subspaces',
+      prompt: 'Which space contains inputs x where Ax = 0?',
+      choices: [
+        { id: 'a', label: 'Null space' },
+        { id: 'b', label: 'Column space' },
+        { id: 'c', label: 'Output space only' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. The null space is made of zero-producing inputs.',
+      incorrectFeedback: 'The null space answers which inputs are sent to zero.',
+    },
+    {
+      id: 'four-subspaces-check-2',
+      conceptId: 'fundamental-subspaces',
+      prompt: 'Where does the column space live?',
+      choices: [
+        { id: 'a', label: 'In the output space' },
+        { id: 'b', label: 'Only inside the input variables' },
+        { id: 'c', label: 'Outside the matrix equation' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Ax is an output, so column space lives in output space.',
+      incorrectFeedback: 'Column space is the set of outputs reachable as Ax.',
+    },
+  ],
+  'rank-nullity': [
+    {
+      id: 'rank-nullity-check-1',
+      conceptId: 'rank-nullity',
+      prompt: 'In rank(A) + nullity(A) = n, what is n?',
+      choices: [
+        { id: 'a', label: 'The number of columns' },
+        { id: 'b', label: 'The number of nonzero rows only' },
+        { id: 'c', label: 'The determinant' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. n is the input dimension.',
+      incorrectFeedback: 'Rank-nullity splits the input columns into pivots and freedom.',
+    },
+    {
+      id: 'rank-nullity-check-2',
+      conceptId: 'rank-nullity',
+      prompt: 'What does nullity count?',
+      choices: [
+        { id: 'a', label: 'Free directions in the null space' },
+        { id: 'b', label: 'Only the entries equal to zero' },
+        { id: 'c', label: 'The number of rows' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. Nullity is the dimension of the null space.',
+      incorrectFeedback: 'Nullity counts free variables or zero-producing directions.',
     },
   ],
   orthogonality: [
@@ -906,6 +1506,34 @@ export const lessonCheckLibrary: Record<ConceptId, LessonCheckQuestion[]> = {
       incorrectFeedback: 'Projection asks for the closest component in a direction.',
     },
   ],
+  'least-squares': [
+    {
+      id: 'least-squares-check-1',
+      conceptId: 'least-squares',
+      prompt: 'What is the residual in Ax approximately equals b?',
+      choices: [
+        { id: 'a', label: 'b - Ax' },
+        { id: 'b', label: 'A + b' },
+        { id: 'c', label: 'Only x' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. The residual is the error vector.',
+      incorrectFeedback: 'Residual means the part of b not explained by Ax.',
+    },
+    {
+      id: 'least-squares-check-2',
+      conceptId: 'least-squares',
+      prompt: 'At the best least-squares fit, the residual is orthogonal to what?',
+      choices: [
+        { id: 'a', label: 'The column space of A' },
+        { id: 'b', label: 'Every possible matrix' },
+        { id: 'c', label: 'Only the zero vector' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. That orthogonality gives the normal equations.',
+      incorrectFeedback: 'The best-fit error is perpendicular to the reachable outputs.',
+    },
+  ],
   eigenvalues: [
     {
       id: 'eigen-check-1',
@@ -932,6 +1560,90 @@ export const lessonCheckLibrary: Record<ConceptId, LessonCheckQuestion[]> = {
       correctChoiceId: 'a',
       correctFeedback: 'Correct. It stays on its line, though it may scale or flip.',
       incorrectFeedback: 'Eigenvectors stay on their line, but they can stretch or flip.',
+    },
+  ],
+  'change-of-basis': [
+    {
+      id: 'basis-change-check-1',
+      conceptId: 'change-of-basis',
+      prompt: 'What are coordinates relative to a basis?',
+      choices: [
+        { id: 'a', label: 'Weights on the basis vectors' },
+        { id: 'b', label: 'A new vector unrelated to the old one' },
+        { id: 'c', label: 'Only the determinant' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Coordinates are basis weights.',
+      incorrectFeedback: 'Coordinates describe how to build the vector from a basis.',
+    },
+    {
+      id: 'basis-change-check-2',
+      conceptId: 'change-of-basis',
+      prompt: 'If P has basis vectors as columns, what does P[x]_B give?',
+      choices: [
+        { id: 'a', label: 'The vector in standard coordinates' },
+        { id: 'b', label: 'Only the trace' },
+        { id: 'c', label: 'The nullity automatically' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. P converts basis coordinates to standard coordinates.',
+      incorrectFeedback: 'The columns of P are the basis vectors used to rebuild x.',
+    },
+  ],
+  diagonalization: [
+    {
+      id: 'diagonalization-check-1',
+      conceptId: 'diagonalization',
+      prompt: 'What do columns of P contain in A = P D P inverse?',
+      choices: [
+        { id: 'a', label: 'Eigenvectors' },
+        { id: 'b', label: 'Residuals' },
+        { id: 'c', label: 'Only row operations' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. P is built from an eigenbasis.',
+      incorrectFeedback: 'Diagonalization uses eigenvectors as a basis.',
+    },
+    {
+      id: 'diagonalization-check-2',
+      conceptId: 'diagonalization',
+      prompt: 'Why is a diagonal matrix easy to power?',
+      choices: [
+        { id: 'a', label: 'You power each diagonal entry' },
+        { id: 'b', label: 'All entries become zero' },
+        { id: 'c', label: 'It has no eigenvalues' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. Diagonal action is coordinate-by-coordinate scaling.',
+      incorrectFeedback: 'Diagonal matrices act independently on each coordinate.',
+    },
+  ],
+  'proof-techniques': [
+    {
+      id: 'proof-check-1',
+      conceptId: 'proof-techniques',
+      prompt: 'To prove a set is a subspace, what must you usually show?',
+      choices: [
+        { id: 'a', label: 'Zero, closure under addition, and closure under scaling' },
+        { id: 'b', label: 'Only that it has two vectors' },
+        { id: 'c', label: 'Only that it has a determinant' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Those are the core subspace checks.',
+      incorrectFeedback: 'Subspace proofs usually turn on zero and closure.',
+    },
+    {
+      id: 'proof-check-2',
+      conceptId: 'proof-techniques',
+      prompt: 'What does one counterexample do to a universal claim?',
+      choices: [
+        { id: 'a', label: 'Disproves it' },
+        { id: 'b', label: 'Proves it forever' },
+        { id: 'c', label: 'Has no effect' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. One valid counterexample is enough.',
+      incorrectFeedback: 'A universal claim fails when one valid example breaks it.',
     },
   ],
 }
@@ -1219,6 +1931,117 @@ export const problemBank: Problem[] = [
     mistakePatterns: [commonMistakes.eigenScale],
     difficulty: 2,
   },
+  {
+    id: 'det-1',
+    conceptId: 'determinants',
+    prompt: 'Compute det([[3, 2], [1, 4]]).',
+    answerType: 'number',
+    accepted: ['10', 'det=10', 'determinant is 10'],
+    mustInclude: ['10'],
+    hint: 'For [[a, b], [c, d]], use ad - bc.',
+    deeperHint: 'Compute 3(4) - 2(1).',
+    solutionSteps: ['Use ad - bc.', '3(4) - 2(1) = 12 - 2.', 'The determinant is 10.'],
+    checksFor: 'Computes a 2 by 2 determinant and interprets nonzero scaling.',
+    mistakePatterns: [commonMistakes.sign],
+    difficulty: 1,
+  },
+  {
+    id: 'inv-1',
+    conceptId: 'inverses',
+    prompt: 'If det(A) = 0 for a square matrix A, is A invertible?',
+    answerType: 'choice',
+    accepted: ['no', 'not invertible', 'singular'],
+    mustInclude: ['no'],
+    hint: 'Invertibility requires no collapsed directions.',
+    deeperHint: 'A zero determinant means the transformation loses dimension.',
+    solutionSteps: ['det(A) = 0 means A is singular.', 'A singular matrix has no inverse.', 'So A is not invertible.'],
+    checksFor: 'Connects determinant zero to non-invertibility.',
+    mistakePatterns: [commonMistakes.spanCount],
+    difficulty: 1,
+  },
+  {
+    id: 'four-sub-1',
+    conceptId: 'fundamental-subspaces',
+    prompt: 'For A = [[1, 0], [0, 0]], describe the null space.',
+    answerType: 'explanation',
+    accepted: ['x1=0', 'span of (0,1)', '(0,1)', 'multiples of (0,1)'],
+    mustInclude: ['0', '1'],
+    hint: 'Solve Ax = 0.',
+    deeperHint: 'The equation is x1 = 0, while x2 is free.',
+    solutionSteps: ['Ax = 0 gives x1 = 0.', 'x2 is free.', 'The null space is span{(0, 1)}.'],
+    checksFor: 'Finds a null space from a simple matrix equation.',
+    mistakePatterns: [commonMistakes.coordinate],
+    difficulty: 2,
+  },
+  {
+    id: 'rank-nullity-1',
+    conceptId: 'rank-nullity',
+    prompt: 'A 4 by 7 matrix has rank 5. What is its nullity?',
+    answerType: 'number',
+    accepted: ['2', 'nullity=2', 'nullity is 2'],
+    mustInclude: ['2'],
+    hint: 'Use rank + nullity = number of columns.',
+    deeperHint: '5 + nullity = 7.',
+    solutionSteps: ['The matrix has 7 columns.', 'Use rank + nullity = 7.', '5 + nullity = 7, so nullity = 2.'],
+    checksFor: 'Uses rank-nullity with the input dimension.',
+    mistakePatterns: [commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'least-squares-1',
+    conceptId: 'least-squares',
+    prompt: 'In least squares, what condition does the residual r = b - Ax satisfy?',
+    answerType: 'explanation',
+    accepted: ['orthogonal to column space', 'perpendicular to column space', 'A^T r = 0', 'At r = 0'],
+    hint: 'At the best fit, the error cannot point along a column direction.',
+    deeperHint: 'The residual is perpendicular to every column of A.',
+    solutionSteps: ['The best approximation projects b onto Col(A).', 'The residual points from the projection to b.', 'That residual is orthogonal to Col(A), so A^T r = 0.'],
+    checksFor: 'Connects least squares to orthogonal projection.',
+    mistakePatterns: [commonMistakes.coordinate],
+    difficulty: 2,
+  },
+  {
+    id: 'basis-change-1',
+    conceptId: 'change-of-basis',
+    prompt: 'For basis B = {(2, 0), (0, 3)}, find the B-coordinates of (6, 12).',
+    answerType: 'vector',
+    accepted: ['(3,4)', '3,4', '[3,4]', '3 and 4'],
+    mustInclude: ['3', '4'],
+    hint: 'Find weights a and b so a(2,0) + b(0,3) = (6,12).',
+    deeperHint: 'Solve 2a = 6 and 3b = 12.',
+    solutionSteps: ['Set a(2, 0) + b(0, 3) = (6, 12).', '2a = 6, so a = 3.', '3b = 12, so b = 4. The B-coordinates are (3, 4).'],
+    checksFor: 'Interprets coordinates as weights in a chosen basis.',
+    mistakePatterns: [commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'diag-1',
+    conceptId: 'diagonalization',
+    prompt: 'If A = P D P inverse, what is A^3?',
+    answerType: 'explanation',
+    accepted: ['P D^3 P inverse', 'PD^3P inverse', 'P D cubed P inverse'],
+    mustInclude: ['p', 'd', '3'],
+    hint: 'Multiply A by itself and cancel the middle P inverse P pairs.',
+    deeperHint: 'A^2 = P D^2 P inverse, so continue once more.',
+    solutionSteps: ['A^3 = (P D P inverse)(P D P inverse)(P D P inverse).', 'Each P inverse P becomes I.', 'So A^3 = P D^3 P inverse.'],
+    checksFor: 'Uses diagonalization to simplify matrix powers.',
+    mistakePatterns: [commonMistakes.coordinate],
+    difficulty: 2,
+  },
+  {
+    id: 'proof-1',
+    conceptId: 'proof-techniques',
+    prompt: 'To prove a set W is a subspace, which three checks should you usually show?',
+    answerType: 'explanation',
+    accepted: ['zero, closed under addition, closed under scalar multiplication', 'contains zero and closed under addition and scalar multiplication', 'zero vector closure addition scalar'],
+    mustInclude: ['zero', 'addition', 'scalar'],
+    hint: 'Start with the subspace definition.',
+    deeperHint: 'You need zero plus two closure properties.',
+    solutionSteps: ['Show the zero vector is in W.', 'Show if u and v are in W, then u + v is in W.', 'Show if c is a scalar and u is in W, then cu is in W.'],
+    checksFor: 'Uses definitions to structure a proof.',
+    mistakePatterns: [commonMistakes.spanCount],
+    difficulty: 1,
+  },
 ]
 
 const byConcept = (conceptId: ConceptId) =>
@@ -1314,7 +2137,7 @@ export const evaluateDiagnostic = (
     completedAt,
     score: strengths.length,
     total: diagnosticQuestions.length,
-    recommendedStart: firstRepair?.repairIfMissed ?? 'eigenvalues',
+    recommendedStart: firstRepair?.repairIfMissed ?? 'diagonalization',
     strengths,
     repairs,
     responses,
