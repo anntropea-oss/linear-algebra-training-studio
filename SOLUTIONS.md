@@ -293,3 +293,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 12` returned `no checks reported on the 'codex/university-curriculum-map' branch`.
+
+## [2026-06-07 22:39] Shareable Demo Was Not Configured
+- Problem: The project did not have a public demo URL; the GitHub Pages API returned 404 for the repository's Pages configuration.
+- Root Cause: GitHub Pages had not been enabled for the repository, and the Vite build did not have a Pages-specific base path command.
+- Solution: Added a `build:pages` script, documented the live demo URL in the README, and published the current production build to the `gh-pages` branch with GitHub Pages enabled.
+- Files Changed: `package.json`, `README.md`, `SOLUTIONS.md`, `gh-pages` branch deployment files
+- Status: Resolved
+- Verification: `npm run build:pages`, `npm run lint`, `git diff --check`, and HTTP verification of the GitHub Pages URL.
