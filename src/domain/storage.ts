@@ -9,6 +9,7 @@ const canStore = () =>
 const normalizeProfile = (profile: LearnerProfile): LearnerProfile => ({
   ...profile,
   lessonReads: profile.lessonReads ?? {},
+  lessonCheckRecords: profile.lessonCheckRecords ?? {},
   problemSets: profile.problemSets.map((set) => ({
     ...set,
     progress: Object.fromEntries(

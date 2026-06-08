@@ -42,6 +42,58 @@ export type ConceptLesson = {
   readinessChecks: string[]
 }
 
+export type LessonCheckQuestion = {
+  id: string
+  conceptId: ConceptId
+  prompt: string
+  choices: Array<{
+    id: string
+    label: string
+  }>
+  correctChoiceId: string
+  correctFeedback: string
+  incorrectFeedback: string
+}
+
+export type LessonCheckRecord = {
+  conceptId: ConceptId
+  completedAt?: string
+  attempts: number
+  responses: Record<string, string>
+  passed: boolean
+}
+
+export type DiagnosticQuestion = {
+  id: string
+  conceptId: ConceptId
+  prompt: string
+  choices: Array<{
+    id: string
+    label: string
+  }>
+  correctChoiceId: string
+  repairIfMissed: ConceptId
+  feedback: string
+}
+
+export type DiagnosticReport = {
+  completedAt: string
+  score: number
+  total: number
+  recommendedStart: ConceptId
+  strengths: ConceptId[]
+  repairs: ConceptId[]
+  responses: Record<string, string>
+}
+
+export type PrerequisiteStatus = {
+  conceptId: ConceptId
+  title: string
+  mastery: number
+  lessonComplete: boolean
+  ready: boolean
+}
+
 export type MistakePattern = {
   id: string
   label: string
@@ -125,6 +177,8 @@ export type LearnerProfile = {
   mastery: Record<ConceptId, number>
   confidence: Record<ConceptId, number>
   lessonReads: Partial<Record<ConceptId, string>>
+  lessonCheckRecords: Partial<Record<ConceptId, LessonCheckRecord>>
+  diagnostic?: DiagnosticReport
   problemSets: ProblemSet[]
   attempts: Attempt[]
   mistakes: MistakeRecord[]
@@ -543,6 +597,345 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
   },
 }
 
+export const prerequisiteGraph: Record<ConceptId, ConceptId[]> =
+  Object.fromEntries(
+    concepts.map((concept) => [concept.id, concept.prerequisites]),
+  ) as Record<ConceptId, ConceptId[]>
+
+export const diagnosticQuestions: DiagnosticQuestion[] = [
+  {
+    id: 'diag-vectors',
+    conceptId: 'vectors',
+    prompt: 'What is 3(2, -1) - (1, 4)?',
+    choices: [
+      { id: 'a', label: '(5, -7)' },
+      { id: 'b', label: '(6, -3)' },
+      { id: 'c', label: '(7, 1)' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'vectors',
+    feedback: 'Vector operations require matching coordinates and scaling every coordinate.',
+  },
+  {
+    id: 'diag-span',
+    conceptId: 'span',
+    prompt: 'If two nonzero vectors in R2 are scalar multiples, what do they span?',
+    choices: [
+      { id: 'a', label: 'All of R2' },
+      { id: 'b', label: 'A line through the origin' },
+      { id: 'c', label: 'Only the zero vector' },
+    ],
+    correctChoiceId: 'b',
+    repairIfMissed: 'span',
+    feedback: 'Span depends on independent directions, not just how many vectors are listed.',
+  },
+  {
+    id: 'diag-systems',
+    conceptId: 'systems',
+    prompt: 'Solve x + y = 4 and x - y = 2.',
+    choices: [
+      { id: 'a', label: '(2, 2)' },
+      { id: 'b', label: '(3, 1)' },
+      { id: 'c', label: 'No solution' },
+    ],
+    correctChoiceId: 'b',
+    repairIfMissed: 'systems',
+    feedback: 'A system solution must satisfy every equation at the same time.',
+  },
+  {
+    id: 'diag-row',
+    conceptId: 'row-reduction',
+    prompt: 'In row-reduced form, what does a variable without a pivot usually mean?',
+    choices: [
+      { id: 'a', label: 'It is a free variable' },
+      { id: 'b', label: 'The system has no variables' },
+      { id: 'c', label: 'The row operation was illegal' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'row-reduction',
+    feedback: 'Non-pivot columns usually correspond to free variables.',
+  },
+  {
+    id: 'diag-matrix',
+    conceptId: 'matrix-transformations',
+    prompt: 'In a matrix transformation, what do the columns of the matrix tell you?',
+    choices: [
+      { id: 'a', label: 'Where the standard basis vectors go' },
+      { id: 'b', label: 'Only the determinant' },
+      { id: 'c', label: 'The final answer to every system' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'matrix-transformations',
+    feedback: 'Matrix columns are the images of the standard basis vectors.',
+  },
+  {
+    id: 'diag-subspace',
+    conceptId: 'subspaces',
+    prompt: 'Why is {(x, y): x + y = 1} not a subspace of R2?',
+    choices: [
+      { id: 'a', label: 'It does not contain the zero vector' },
+      { id: 'b', label: 'It has too many points' },
+      { id: 'c', label: 'Every line is never a subspace' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'subspaces',
+    feedback: 'Every subspace must contain the zero vector.',
+  },
+  {
+    id: 'diag-orth',
+    conceptId: 'orthogonality',
+    prompt: 'What does it mean when two vectors have dot product zero?',
+    choices: [
+      { id: 'a', label: 'They are orthogonal' },
+      { id: 'b', label: 'They are equal' },
+      { id: 'c', label: 'They cannot be vectors' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'orthogonality',
+    feedback: 'Dot product zero means perpendicular directions.',
+  },
+  {
+    id: 'diag-eigen',
+    conceptId: 'eigenvalues',
+    prompt: 'If Av = -2v for nonzero v, what is the eigenvalue?',
+    choices: [
+      { id: 'a', label: '-2' },
+      { id: 'b', label: 'v' },
+      { id: 'c', label: '0' },
+    ],
+    correctChoiceId: 'a',
+    repairIfMissed: 'eigenvalues',
+    feedback: 'The eigenvalue is the scalar multiplying the eigenvector.',
+  },
+]
+
+export const lessonCheckLibrary: Record<ConceptId, LessonCheckQuestion[]> = {
+  vectors: [
+    {
+      id: 'vectors-check-1',
+      conceptId: 'vectors',
+      prompt: 'In a linear combination a v + b w, what are a and b?',
+      choices: [
+        { id: 'a', label: 'Scalars that weight the vectors' },
+        { id: 'b', label: 'The coordinates of v only' },
+        { id: 'c', label: 'Names for rows' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Scalars are the weights in the combination.',
+      incorrectFeedback: 'Look back at scalar: it stretches or weights a vector.',
+    },
+    {
+      id: 'vectors-check-2',
+      conceptId: 'vectors',
+      prompt: 'How do you usually solve a vector equation in coordinates?',
+      choices: [
+        { id: 'a', label: 'Match each coordinate with a scalar equation' },
+        { id: 'b', label: 'Ignore coordinate positions' },
+        { id: 'c', label: 'Only count the number of vectors' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. Coordinate equations expose the unknown weights.',
+      incorrectFeedback: 'A vector equation becomes one equation per coordinate.',
+    },
+  ],
+  span: [
+    {
+      id: 'span-check-1',
+      conceptId: 'span',
+      prompt: 'What does span measure?',
+      choices: [
+        { id: 'a', label: 'Everything reachable by linear combinations' },
+        { id: 'b', label: 'Only the largest coordinate' },
+        { id: 'c', label: 'The number of equations in a system' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Exactly. Span is the reachable set.',
+      incorrectFeedback: 'Span is about what combinations can reach.',
+    },
+    {
+      id: 'span-check-2',
+      conceptId: 'span',
+      prompt: 'If one vector is a multiple of another, what is the key issue?',
+      choices: [
+        { id: 'a', label: 'Redundancy' },
+        { id: 'b', label: 'Orthogonality' },
+        { id: 'c', label: 'A guaranteed inverse' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Multiples repeat the same direction.',
+      incorrectFeedback: 'A multiple repeats a direction instead of adding a new one.',
+    },
+  ],
+  systems: [
+    {
+      id: 'systems-check-1',
+      conceptId: 'systems',
+      prompt: 'What must be true of a solution to a system?',
+      choices: [
+        { id: 'a', label: 'It satisfies every equation' },
+        { id: 'b', label: 'It satisfies only the first equation' },
+        { id: 'c', label: 'It must always be the zero vector' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Every equation must be true at once.',
+      incorrectFeedback: 'A system solution must satisfy all equations simultaneously.',
+    },
+    {
+      id: 'systems-check-2',
+      conceptId: 'systems',
+      prompt: 'What does a contradiction like 0 = 5 mean?',
+      choices: [
+        { id: 'a', label: 'No solution' },
+        { id: 'b', label: 'Exactly one solution' },
+        { id: 'c', label: 'Every vector is a solution' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. A contradiction means inconsistent.',
+      incorrectFeedback: 'A false statement means the equations cannot all be true.',
+    },
+  ],
+  'row-reduction': [
+    {
+      id: 'row-check-1',
+      conceptId: 'row-reduction',
+      prompt: 'Which is a legal row operation?',
+      choices: [
+        { id: 'a', label: 'Add a multiple of one row to another row' },
+        { id: 'b', label: 'Change one column because it looks easier' },
+        { id: 'c', label: 'Delete a variable' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Row replacement is legal.',
+      incorrectFeedback: 'Row reduction preserves solutions only through legal row operations.',
+    },
+    {
+      id: 'row-check-2',
+      conceptId: 'row-reduction',
+      prompt: 'What does a pivot column identify?',
+      choices: [
+        { id: 'a', label: 'A forced variable or direction' },
+        { id: 'b', label: 'An optional definition' },
+        { id: 'c', label: 'A column you should erase' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Pivots mark the forced structure.',
+      incorrectFeedback: 'Pivots identify the anchored variables or directions.',
+    },
+  ],
+  'matrix-transformations': [
+    {
+      id: 'matrix-check-1',
+      conceptId: 'matrix-transformations',
+      prompt: 'What is a matrix-vector product best understood as?',
+      choices: [
+        { id: 'a', label: 'A linear combination of matrix columns' },
+        { id: 'b', label: 'A list of unrelated numbers' },
+        { id: 'c', label: 'A way to ignore basis vectors' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. The input coordinates weight the columns.',
+      incorrectFeedback: 'Matrix-vector multiplication combines columns using input weights.',
+    },
+    {
+      id: 'matrix-check-2',
+      conceptId: 'matrix-transformations',
+      prompt: 'If a matrix sends e1 to (1, 2), where does that vector appear?',
+      choices: [
+        { id: 'a', label: 'In the first column' },
+        { id: 'b', label: 'In the determinant only' },
+        { id: 'c', label: 'Nowhere in the matrix' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Images of basis vectors are columns.',
+      incorrectFeedback: 'The first column records where e1 goes.',
+    },
+  ],
+  subspaces: [
+    {
+      id: 'subspace-check-1',
+      conceptId: 'subspaces',
+      prompt: 'What must every subspace contain?',
+      choices: [
+        { id: 'a', label: 'The zero vector' },
+        { id: 'b', label: 'Only positive vectors' },
+        { id: 'c', label: 'Exactly two vectors' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Zero is required.',
+      incorrectFeedback: 'The zero vector is a fast first test for subspaces.',
+    },
+    {
+      id: 'subspace-check-2',
+      conceptId: 'subspaces',
+      prompt: 'What does a basis do?',
+      choices: [
+        { id: 'a', label: 'Spans a space without redundancy' },
+        { id: 'b', label: 'Lists every vector in the space' },
+        { id: 'c', label: 'Removes all dimensions' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. Basis means spanning plus independent.',
+      incorrectFeedback: 'A basis is an efficient, non-redundant spanning set.',
+    },
+  ],
+  orthogonality: [
+    {
+      id: 'orth-check-1',
+      conceptId: 'orthogonality',
+      prompt: 'How do you test whether two vectors are orthogonal?',
+      choices: [
+        { id: 'a', label: 'Compute their dot product' },
+        { id: 'b', label: 'Count their coordinates' },
+        { id: 'c', label: 'Check whether they have the same length only' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Right. Dot product zero means orthogonal.',
+      incorrectFeedback: 'Orthogonality is measured by the dot product.',
+    },
+    {
+      id: 'orth-check-2',
+      conceptId: 'orthogonality',
+      prompt: 'What does projection measure?',
+      choices: [
+        { id: 'a', label: 'How much of one vector lies in a direction' },
+        { id: 'b', label: 'Whether a vector has no coordinates' },
+        { id: 'c', label: 'Only whether two vectors are equal' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. Projection finds the component in a direction.',
+      incorrectFeedback: 'Projection asks for the closest component in a direction.',
+    },
+  ],
+  eigenvalues: [
+    {
+      id: 'eigen-check-1',
+      conceptId: 'eigenvalues',
+      prompt: 'In Av = lambda v, what is lambda?',
+      choices: [
+        { id: 'a', label: 'The eigenvalue' },
+        { id: 'b', label: 'The zero vector' },
+        { id: 'c', label: 'The number of columns' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Yes. Lambda is the scaling factor.',
+      incorrectFeedback: 'The eigenvalue is the scalar multiplying v.',
+    },
+    {
+      id: 'eigen-check-2',
+      conceptId: 'eigenvalues',
+      prompt: 'What is special about an eigenvector direction?',
+      choices: [
+        { id: 'a', label: 'The matrix only scales it' },
+        { id: 'b', label: 'It must be the zero vector' },
+        { id: 'c', label: 'It is always unchanged' },
+      ],
+      correctChoiceId: 'a',
+      correctFeedback: 'Correct. It stays on its line, though it may scale or flip.',
+      incorrectFeedback: 'Eigenvectors stay on their line, but they can stretch or flip.',
+    },
+  ],
+}
+
 const commonMistakes = {
   sign: {
     id: 'sign-slip',
@@ -853,6 +1246,9 @@ export const getConcept = (conceptId: ConceptId) =>
 export const getLesson = (conceptId: ConceptId) =>
   lessonLibrary[conceptId] ?? lessonLibrary.vectors
 
+export const getLessonChecks = (conceptId: ConceptId) =>
+  lessonCheckLibrary[conceptId] ?? lessonCheckLibrary.vectors
+
 export const getProblem = (problemId: string) =>
   problemBank.find((problem) => problem.id === problemId) ?? problemBank[0]
 
@@ -862,6 +1258,67 @@ export const conceptSequenceFrom = (conceptId: ConceptId) => {
     concepts.findIndex((concept) => concept.id === conceptId),
   )
   return concepts.slice(startIndex)
+}
+
+export const getPrerequisiteStatus = (
+  profile: LearnerProfile,
+  conceptId: ConceptId,
+): PrerequisiteStatus[] =>
+  prerequisiteGraph[conceptId].map((prereqId) => {
+    const concept = getConcept(prereqId)
+    const mastery = profile.mastery[prereqId] ?? 0
+    const lessonComplete = Boolean(profile.lessonReads?.[prereqId])
+    return {
+      conceptId: prereqId,
+      title: concept.shortTitle,
+      mastery,
+      lessonComplete,
+      ready: mastery >= 60 && lessonComplete,
+    }
+  })
+
+export const evaluateLessonChecks = (
+  conceptId: ConceptId,
+  responses: Record<string, string>,
+) => {
+  const checks = getLessonChecks(conceptId)
+  const results = checks.map((check) => ({
+    check,
+    selectedChoiceId: responses[check.id] ?? '',
+    correct: responses[check.id] === check.correctChoiceId,
+  }))
+  return {
+    results,
+    answered: results.filter((result) => result.selectedChoiceId).length,
+    total: checks.length,
+    passed:
+      results.length > 0 &&
+      results.every((result) => result.selectedChoiceId && result.correct),
+  }
+}
+
+export const evaluateDiagnostic = (
+  responses: Record<string, string>,
+): DiagnosticReport => {
+  const completedAt = nowIso()
+  const strengths = diagnosticQuestions
+    .filter((question) => responses[question.id] === question.correctChoiceId)
+    .map((question) => question.conceptId)
+  const repairs = diagnosticQuestions
+    .filter((question) => responses[question.id] !== question.correctChoiceId)
+    .map((question) => question.repairIfMissed)
+  const firstRepair = diagnosticQuestions.find(
+    (question) => responses[question.id] !== question.correctChoiceId,
+  )
+  return {
+    completedAt,
+    score: strengths.length,
+    total: diagnosticQuestions.length,
+    recommendedStart: firstRepair?.repairIfMissed ?? 'eigenvalues',
+    strengths,
+    repairs,
+    responses,
+  }
 }
 
 export const evaluateResponse = (problem: Problem, response: string): LiveFeedback => {
@@ -1008,6 +1465,7 @@ export const createLearnerProfile = (
     mastery,
     confidence,
     lessonReads: {},
+    lessonCheckRecords: {},
     problemSets: [],
     attempts: [],
     mistakes: [],
@@ -1024,6 +1482,56 @@ export const createLearnerProfile = (
   return {
     ...baseProfile,
     problemSets: [createProblemSet(baseProfile, 'adaptive', startingPoint)],
+  }
+}
+
+export const applyDiagnosticPlacement = (
+  profile: LearnerProfile,
+  responses: Record<string, string>,
+): LearnerProfile => {
+  const report = evaluateDiagnostic(responses)
+  const strengths = new Set(report.strengths)
+  const repairs = new Set(report.repairs)
+  const mastery = Object.fromEntries(
+    concepts.map((concept) => {
+      const current = profile.mastery[concept.id] ?? 0
+      if (strengths.has(concept.id)) return [concept.id, Math.max(current, 72)]
+      if (repairs.has(concept.id)) return [concept.id, Math.min(current, 35)]
+      return [concept.id, current]
+    }),
+  ) as Record<ConceptId, number>
+  const confidence = Object.fromEntries(
+    concepts.map((concept) => {
+      const current = profile.confidence[concept.id] ?? 0
+      if (strengths.has(concept.id)) return [concept.id, Math.max(current, 62)]
+      if (repairs.has(concept.id)) return [concept.id, Math.min(current, 32)]
+      return [concept.id, current]
+    }),
+  ) as Record<ConceptId, number>
+  const placedProfile: LearnerProfile = {
+    ...profile,
+    startingPoint: report.recommendedStart,
+    currentConceptId: report.recommendedStart,
+    mastery,
+    confidence,
+    diagnostic: report,
+    lessonReads: profile.lessonReads ?? {},
+    lessonCheckRecords: profile.lessonCheckRecords ?? {},
+    problemSets: [],
+    activity: [
+      {
+        id: uid('activity'),
+        createdAt: report.completedAt,
+        title: 'Diagnostic completed',
+        detail: `${report.score}/${report.total}; start at ${getConcept(report.recommendedStart).shortTitle}.`,
+      },
+      ...profile.activity,
+    ].slice(0, 30),
+  }
+
+  return {
+    ...placedProfile,
+    problemSets: [createProblemSet(placedProfile, 'adaptive', report.recommendedStart)],
   }
 }
 
@@ -1280,20 +1788,36 @@ export const addProblemSet = (
 export const markLessonRead = (
   profile: LearnerProfile,
   conceptId: ConceptId,
+  responses: Record<string, string> = {},
 ): LearnerProfile => {
   const createdAt = nowIso()
+  const priorRecord = profile.lessonCheckRecords?.[conceptId]
+  const checkResult = evaluateLessonChecks(conceptId, responses)
+  const passed = checkResult.passed
   return {
     ...profile,
     lessonReads: {
       ...(profile.lessonReads ?? {}),
-      [conceptId]: createdAt,
+      ...(passed ? { [conceptId]: createdAt } : {}),
+    },
+    lessonCheckRecords: {
+      ...(profile.lessonCheckRecords ?? {}),
+      [conceptId]: {
+        conceptId,
+        completedAt: passed ? createdAt : priorRecord?.completedAt,
+        attempts: (priorRecord?.attempts ?? 0) + 1,
+        responses,
+        passed,
+      },
     },
     activity: [
       {
         id: uid('activity'),
         createdAt,
-        title: 'Lesson completed',
-        detail: `${getConcept(conceptId).shortTitle}: theory read before practice.`,
+        title: passed ? 'Lesson completed' : 'Lesson check attempted',
+        detail: passed
+          ? `${getConcept(conceptId).shortTitle}: theory checked before practice.`
+          : `${getConcept(conceptId).shortTitle}: review lesson checks before practice.`,
       },
       ...profile.activity,
     ].slice(0, 30),

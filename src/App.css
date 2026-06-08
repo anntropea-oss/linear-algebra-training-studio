@@ -195,6 +195,69 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.diagnostic-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.diagnostic-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diagnostic-question,
+.lesson-check-question {
+  background: #f8faf9;
+  border: 1px solid #e1e8e6;
+  border-radius: 10px;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+}
+
+.diagnostic-question > span {
+  color: #66736e;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choice-row button {
+  height: auto;
+  min-height: 34px;
+  white-space: normal;
+}
+
+.choice-row button.selected {
+  background: #e8f5f1;
+  border-color: #0f766e;
+}
+
+.choice-feedback {
+  color: #be123c;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.choice-feedback.correct {
+  color: #0f766e;
+}
+
+.diagnostic-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
 .path-node {
   align-items: center;
   background: #ffffff;
@@ -321,7 +384,8 @@
 .definition-grid div,
 .worked-example,
 .lesson-section,
-.readiness-check {
+.readiness-check,
+.lesson-check-panel {
   background: #ffffff;
   border: 1px solid #e1e8e6;
   border-radius: 10px;
@@ -332,7 +396,8 @@
 
 .lesson-section h4,
 .worked-example h4,
-.readiness-check h4 {
+.readiness-check h4,
+.lesson-check-panel h4 {
   font-size: 0.9rem;
   margin: 0;
 }
@@ -468,6 +533,34 @@ button:disabled {
   font-weight: 750;
 }
 
+.prerequisite-list {
+  display: grid;
+  gap: 8px;
+}
+
+.prerequisite-list div {
+  background: #f8faf9;
+  border: 1px solid #e1e8e6;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.prerequisite-list div.ready {
+  border-color: #0f766e;
+}
+
+.prerequisite-list div.needs-work {
+  border-color: #efd48d;
+}
+
+.prerequisite-list span {
+  color: #66736e;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .repair-card button {
   justify-self: start;
 }
@@ -539,6 +632,7 @@ button:disabled {
 
   .hero-stats,
   .path-strip,
+  .diagnostic-grid,
   .set-switcher,
   .definition-grid {
     grid-template-columns: 1fr;

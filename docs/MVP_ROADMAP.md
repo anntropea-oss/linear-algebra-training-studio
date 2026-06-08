@@ -5,7 +5,9 @@
 Status: current app
 
 - Learner chooses a starting point.
+- Learner completes a short diagnostic placement check.
 - Learner reads concept theory before problem sets unlock.
+- Learner passes lesson checks.
 - App creates active problem sets.
 - Learner works problems in real time.
 - Live coach detects partial progress and common mistakes.
@@ -14,12 +16,18 @@ Status: current app
 
 ## Phase 2: Math-Aware Checking
 
-- Add short checks for understanding at the end of lessons.
 - Parse vector answers robustly.
 - Parse matrix answers robustly.
 - Accept equivalent algebraic forms.
 - Capture step-by-step work.
 - Score using concept-specific rubrics.
+
+## Phase 2A: Stronger Adaptivity
+
+- Expand diagnostic coverage with more than one item per concept.
+- Weight diagnostic evidence by confidence and response time.
+- Generate prerequisite repair sets automatically.
+- Add spaced review scheduling.
 
 ## Phase 3: Bigger Verified Curriculum
 

@@ -6,24 +6,30 @@ Build a real-time linear algebra tutor that lets a learner start anywhere, solve
 
 ## Core Loop
 
-1. Learner chooses a starting point.
-2. App opens the concept lesson for that point.
-3. Learner reads the big idea, definitions, theory, and worked example.
-4. App unlocks the adaptive problem set after the learner starts practice.
-5. Learner works in the answer box.
-6. Live coach reacts to the answer in real time.
-7. Learner asks for guided support if they are stuck.
-8. Learner submits the attempt.
-9. App updates mastery, confidence, lesson completion, support used, mistake records, repair queue, and next problem set recommendations.
+1. Learner chooses an initial starting point.
+2. Learner completes a short diagnostic placement check.
+3. App recommends a starting concept and flags prerequisite repairs.
+4. App opens the concept lesson for that point.
+5. Learner reads the big idea, definitions, theory, and worked example.
+6. Learner passes lesson checks.
+7. App unlocks the adaptive problem set.
+8. Learner works in the answer box.
+9. Live coach reacts to the answer in real time.
+10. Learner asks for guided support if they are stuck.
+11. Learner submits the attempt.
+12. App updates mastery, confidence, lesson completion, support used, mistake records, repair queue, and next problem set recommendations.
 
 ## Primary Experience
 
 The first screen is not an instructor dashboard. It is a learning cockpit:
 
 - starting point selector
+- placement diagnostic
+- prerequisite readiness map
 - concept path
 - theory lesson before practice
 - definitions and worked examples
+- lesson checks before practice unlocks
 - active problem sets
 - live coach feedback
 - hints and worked solution steps
@@ -38,6 +44,8 @@ The app should care about evidence:
 
 - what answer the learner tried
 - whether the prerequisite lesson was read
+- whether lesson checks were passed
+- which diagnostic concepts were strengths or repair targets
 - what concept the problem tests
 - what mistake pattern appeared
 - how many hints or guided steps the learner used
@@ -49,6 +57,9 @@ The app should care about evidence:
 - Single learner profile persisted locally.
 - Multiple active problem sets.
 - Concept lessons gate problem practice.
+- Diagnostic placement recommends a starting concept.
+- Prerequisite map shows readiness for advanced concepts.
+- Lesson checks gate practice after theory.
 - Real-time response evaluation.
 - Guided solution function for stuck learners.
 - Adaptive, repair, and challenge set generation.

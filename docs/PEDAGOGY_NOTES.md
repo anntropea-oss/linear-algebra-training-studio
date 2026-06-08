@@ -7,6 +7,8 @@ The rebuilt app focuses on real-time learning, not after-the-fact reporting.
 - Start from the learner's actual entry point.
 - Teach the concept before asking the learner to perform it.
 - Use definitions, intuition, and worked examples before independent practice.
+- Diagnose the learner before trusting their self-placement.
+- Require short checks for understanding before unlocking practice.
 - Make partial work visible and useful.
 - Give feedback before the learner submits.
 - Reveal help progressively when the learner does not know how to begin.
@@ -55,6 +57,19 @@ Each concept begins with:
 - readiness checks before the answer box appears
 
 Practice is intentionally gated until the lesson is marked complete. This does not prove mastery, but it prevents the app from treating linear algebra as only a problem generator.
+
+## Diagnostic Placement
+
+The current diagnostic is short and conceptual. It should be used as a routing signal, not a grade:
+
+- correct answers mark strengths
+- missed answers mark repair targets
+- the first missed concept becomes the recommended starting point
+- diagnostic results should not erase prior learning history
+
+## Prerequisite Awareness
+
+Each concept has prerequisites from the concept graph. A concept is considered ready when prerequisite lessons are complete and prerequisite mastery is at least developing. This gives the tutor a reason to route backward when a learner is stuck.
 
 ## What Still Needs Depth
 
