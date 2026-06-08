@@ -285,3 +285,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after updating the fallback.
+
+## [2026-06-07 22:36] No Automated PR Checks Reported
+- Problem: GitHub reported no automated checks for PR #12, so branch validation depends on local verification.
+- Root Cause: Unknown; no required CI checks are currently reported for this repository.
+- Solution: Logged the gap and used local `npm run build`, `npm run lint`, and `git diff --check` as the verification path for this milestone.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 12` returned `no checks reported on the 'codex/university-curriculum-map' branch`.
