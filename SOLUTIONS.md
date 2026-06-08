@@ -245,3 +245,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `ps -p $(cat /tmp/linear-algebra-caffeinate.pid) -o pid=,command=` showed `24803 caffeinate -dimsu`.
+
+## [2026-06-07 22:25] Detached Caffeinate Still Exited
+- Problem: Detached `caffeinate` attempts, including `caffeinate -dimsu sleep 86400`, exited quickly in this execution environment.
+- Root Cause: Unknown; detached background processes appear unreliable for keeping `caffeinate` alive here.
+- Solution: Started `caffeinate -dimsu` as a live tool session instead.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: The `caffeinate -dimsu` command is running in active session `72848`.
