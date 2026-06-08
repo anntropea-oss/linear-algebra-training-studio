@@ -24,6 +24,19 @@ The learner can start at:
 
 Earlier concepts are not skipped forever. If a later answer reveals a prerequisite gap, the next repair set can pull the learner backward.
 
+## Lesson Structure
+
+Every concept now starts with theoretical grounding before problem sets:
+
+- big idea
+- why it matters
+- core definitions
+- theory notes
+- worked example
+- readiness checks
+
+The goal is to teach the mental model before asking for computation.
+
 ## Mastery Bands
 
 - 0-39: repair

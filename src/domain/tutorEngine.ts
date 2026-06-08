@@ -25,6 +25,23 @@ export type Concept = {
   target: string
 }
 
+export type ConceptLesson = {
+  conceptId: ConceptId
+  bigIdea: string
+  whyItMatters: string
+  definitions: Array<{
+    term: string
+    meaning: string
+  }>
+  theory: string[]
+  workedExample: {
+    prompt: string
+    steps: string[]
+    takeaway: string
+  }
+  readinessChecks: string[]
+}
+
 export type MistakePattern = {
   id: string
   label: string
@@ -107,6 +124,7 @@ export type LearnerProfile = {
   currentConceptId: ConceptId
   mastery: Record<ConceptId, number>
   confidence: Record<ConceptId, number>
+  lessonReads: Partial<Record<ConceptId, string>>
   problemSets: ProblemSet[]
   attempts: Attempt[]
   mistakes: MistakeRecord[]
@@ -208,6 +226,322 @@ export const concepts: Concept[] = [
     target: 'Find directions that stay on their own line under a transformation.',
   },
 ]
+
+export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
+  vectors: {
+    conceptId: 'vectors',
+    bigIdea:
+      'A vector is a quantity with direction and size. In linear algebra, vectors are the basic objects we add together and scale.',
+    whyItMatters:
+      'Almost every later topic asks what happens when you combine vectors: whether they can reach a target, solve a system, describe a space, or move under a matrix.',
+    definitions: [
+      {
+        term: 'Vector',
+        meaning: 'An ordered list of numbers, often interpreted as a direction or point.',
+      },
+      {
+        term: 'Scalar',
+        meaning: 'A number that stretches, shrinks, flips, or weights a vector.',
+      },
+      {
+        term: 'Linear combination',
+        meaning: 'A sum of scaled vectors, such as a v + b w.',
+      },
+    ],
+    theory: [
+      'To add vectors, add matching coordinates. To scale a vector, multiply every coordinate by the scalar.',
+      'A linear combination asks how much of each vector is needed to build a target vector.',
+      'Solving a vector equation usually means turning each coordinate into its own scalar equation.',
+    ],
+    workedExample: {
+      prompt: 'Find a and b so that a(1, 0) + b(0, 1) = (3, -2).',
+      steps: [
+        'Scale each vector: a(1, 0) = (a, 0) and b(0, 1) = (0, b).',
+        'Add them: (a, 0) + (0, b) = (a, b).',
+        'Match coordinates with (3, -2), so a = 3 and b = -2.',
+      ],
+      takeaway:
+        'The coefficients in a linear combination are the weights that build the target.',
+    },
+    readinessChecks: [
+      'Can you identify the vectors and scalars in a linear combination?',
+      'Can you turn a vector equation into coordinate equations?',
+    ],
+  },
+  span: {
+    conceptId: 'span',
+    bigIdea:
+      'The span of a set of vectors is every vector you can build from their linear combinations.',
+    whyItMatters:
+      'Span tells you what directions are reachable. Independence tells you whether any listed vector is redundant.',
+    definitions: [
+      {
+        term: 'Span',
+        meaning: 'The full collection of vectors reachable by linear combinations.',
+      },
+      {
+        term: 'Linear independence',
+        meaning: 'No vector in the set can be built from the others.',
+      },
+      {
+        term: 'Dependence',
+        meaning: 'At least one vector repeats information already supplied by the others.',
+      },
+    ],
+    theory: [
+      'Two vectors in R2 span the whole plane only when they point in genuinely different directions.',
+      'Counting vectors is not enough; three vectors on the same line still span only a line.',
+      'A dependence relation means there is a nonzero way to combine the vectors and get zero.',
+    ],
+    workedExample: {
+      prompt: 'Do (1, 2) and (2, 4) span all of R2?',
+      steps: [
+        'Notice (2, 4) = 2(1, 2).',
+        'Both vectors point along the same line.',
+        'Their combinations can move forward and backward on that line, but not off it.',
+      ],
+      takeaway: 'They span a line, not all of R2.',
+    },
+    readinessChecks: [
+      'Can you spot when one vector is a multiple of another?',
+      'Can you explain reachable directions instead of only counting vectors?',
+    ],
+  },
+  systems: {
+    conceptId: 'systems',
+    bigIdea:
+      'A system of equations asks for values that satisfy every equation at the same time.',
+    whyItMatters:
+      'Systems are the computational form of many vector and matrix questions. They reveal whether a target can be built from given directions.',
+    definitions: [
+      {
+        term: 'Solution',
+        meaning: 'A value or vector that makes every equation true.',
+      },
+      {
+        term: 'Consistent',
+        meaning: 'The system has at least one solution.',
+      },
+      {
+        term: 'Inconsistent',
+        meaning: 'The equations contradict each other, so there is no solution.',
+      },
+    ],
+    theory: [
+      'Solving a system means preserving the same solution set while making the equations easier.',
+      'A unique solution appears when every variable is forced.',
+      'No solution appears when the equations produce a contradiction, such as 0 = 5.',
+    ],
+    workedExample: {
+      prompt: 'Solve x + y = 5 and x - y = 1.',
+      steps: [
+        'Add the equations: 2x = 6.',
+        'So x = 3.',
+        'Substitute into x + y = 5 to get y = 2.',
+      ],
+      takeaway: 'The solution is (3, 2), and it must satisfy both equations.',
+    },
+    readinessChecks: [
+      'Can you check a proposed solution in every equation?',
+      'Can you tell the difference between unique, infinite, and no solutions?',
+    ],
+  },
+  'row-reduction': {
+    conceptId: 'row-reduction',
+    bigIdea:
+      'Row reduction rewrites a system into an equivalent, easier system using legal row operations.',
+    whyItMatters:
+      'It is the main hand tool for solving systems, finding rank, identifying pivots, and describing solution spaces.',
+    definitions: [
+      {
+        term: 'Pivot',
+        meaning: 'A leading nonzero entry that anchors a variable or direction.',
+      },
+      {
+        term: 'Free variable',
+        meaning: 'A variable without a pivot, allowed to vary as a parameter.',
+      },
+      {
+        term: 'Rank',
+        meaning: 'The number of pivot directions in a matrix.',
+      },
+    ],
+    theory: [
+      'Legal row operations are row swaps, multiplying a row by a nonzero scalar, and adding a multiple of one row to another.',
+      'Row operations preserve the solution set of the system.',
+      'Pivot columns identify forced variables; non-pivot columns identify freedom.',
+    ],
+    workedExample: {
+      prompt: 'Read x + 2y = 5 and y = 1.',
+      steps: [
+        'The second equation already says y = 1.',
+        'Substitute into the first equation: x + 2(1) = 5.',
+        'So x = 3.',
+      ],
+      takeaway: 'A pivot structure lets you solve from the simplest rows upward.',
+    },
+    readinessChecks: [
+      'Can you name the three legal row operations?',
+      'Can you explain what a non-pivot variable means?',
+    ],
+  },
+  'matrix-transformations': {
+    conceptId: 'matrix-transformations',
+    bigIdea:
+      'A matrix is a machine that transforms input vectors into output vectors.',
+    whyItMatters:
+      'This connects computation to geometry: matrices can stretch, rotate, shear, project, or collapse space.',
+    definitions: [
+      {
+        term: 'Matrix-vector product',
+        meaning: 'A linear combination of the matrix columns using the input coordinates as weights.',
+      },
+      {
+        term: 'Standard basis',
+        meaning: 'The coordinate directions e1, e2, and so on.',
+      },
+      {
+        term: 'Linear transformation',
+        meaning: 'A rule that preserves vector addition and scalar multiplication.',
+      },
+    ],
+    theory: [
+      'The columns of a matrix tell you where the standard basis vectors go.',
+      'Multiplying A by x combines the columns of A using the coordinates of x.',
+      'If the columns collapse into fewer directions, the transformation loses dimension.',
+    ],
+    workedExample: {
+      prompt: 'What does [[2, 0], [0, 3]] do to (x, y)?',
+      steps: [
+        'The first coordinate is multiplied by 2.',
+        'The second coordinate is multiplied by 3.',
+        'So the output is (2x, 3y).',
+      ],
+      takeaway: 'A diagonal matrix scales coordinate directions independently.',
+    },
+    readinessChecks: [
+      'Can you read matrix columns as images of basis vectors?',
+      'Can you multiply a 2 by 2 matrix by a vector?',
+    ],
+  },
+  subspaces: {
+    conceptId: 'subspaces',
+    bigIdea:
+      'A subspace is a smaller linear world inside a larger vector space, closed under the operations that define linear algebra.',
+    whyItMatters:
+      'Subspaces let us describe solution sets, column spaces, null spaces, and the structure hidden inside matrices.',
+    definitions: [
+      {
+        term: 'Subspace',
+        meaning: 'A set containing zero that is closed under vector addition and scalar multiplication.',
+      },
+      {
+        term: 'Basis',
+        meaning: 'An independent set of vectors that spans a space.',
+      },
+      {
+        term: 'Dimension',
+        meaning: 'The number of vectors in a basis.',
+      },
+    ],
+    theory: [
+      'Every subspace must contain the zero vector.',
+      'If you add two vectors in a subspace, the result must stay in the subspace.',
+      'A basis removes redundancy while preserving every reachable vector.',
+    ],
+    workedExample: {
+      prompt: 'Is the line x + y = 0 a subspace of R2?',
+      steps: [
+        'The zero vector satisfies 0 + 0 = 0.',
+        'Adding two vectors with coordinate sums zero gives another vector with coordinate sum zero.',
+        'Scaling a vector with coordinate sum zero still has coordinate sum zero.',
+      ],
+      takeaway: 'The line x + y = 0 is a subspace.',
+    },
+    readinessChecks: [
+      'Can you test whether zero is in a set?',
+      'Can you explain closure under addition and scalar multiplication?',
+    ],
+  },
+  orthogonality: {
+    conceptId: 'orthogonality',
+    bigIdea:
+      'Orthogonality means perpendicularity, measured by the dot product.',
+    whyItMatters:
+      'Orthogonality powers projections, least squares, distances, and decomposing vectors into independent pieces.',
+    definitions: [
+      {
+        term: 'Dot product',
+        meaning: 'A coordinate-wise product sum that measures alignment.',
+      },
+      {
+        term: 'Orthogonal',
+        meaning: 'Two vectors with dot product zero.',
+      },
+      {
+        term: 'Projection',
+        meaning: 'The closest vector in a direction or subspace.',
+      },
+    ],
+    theory: [
+      'A positive dot product means vectors point generally together; a negative dot product means they oppose; zero means perpendicular.',
+      'Projection answers: how much of this vector lies in that direction?',
+      'The projection formula onto u is ((v dot u) / (u dot u))u.',
+    ],
+    workedExample: {
+      prompt: 'Are (1, 2) and (2, -1) orthogonal?',
+      steps: [
+        'Compute the dot product: 1(2) + 2(-1).',
+        'That equals 2 - 2 = 0.',
+        'Dot product zero means orthogonal.',
+      ],
+      takeaway: 'Orthogonality is checked by a dot product, not by visual guessing.',
+    },
+    readinessChecks: [
+      'Can you compute a dot product?',
+      'Can you explain what dot product zero means geometrically?',
+    ],
+  },
+  eigenvalues: {
+    conceptId: 'eigenvalues',
+    bigIdea:
+      'Eigenvectors are special directions that a matrix only scales; eigenvalues are the scale factors.',
+    whyItMatters:
+      'Eigen ideas explain repeated transformations, stability, vibration, principal directions, and many advanced applications.',
+    definitions: [
+      {
+        term: 'Eigenvector',
+        meaning: 'A nonzero vector v where Av stays on the same line as v.',
+      },
+      {
+        term: 'Eigenvalue',
+        meaning: 'The scalar lambda in Av = lambda v.',
+      },
+      {
+        term: 'Characteristic equation',
+        meaning: 'An equation used to find eigenvalues.',
+      },
+    ],
+    theory: [
+      'Most vectors change direction under a matrix. Eigenvectors do not; they only stretch, shrink, or flip.',
+      'The zero vector is excluded because it would make every scalar look like an eigenvalue.',
+      'The equation Av = lambda v is the definition to keep returning to.',
+    ],
+    workedExample: {
+      prompt: 'If Av = 4v for nonzero v, what is the eigenvalue?',
+      steps: [
+        'Compare Av = 4v with Av = lambda v.',
+        'The scalar multiplying v is lambda.',
+        'So the eigenvalue is 4.',
+      ],
+      takeaway: 'An eigenvalue is the scaling factor on an eigenvector.',
+    },
+    readinessChecks: [
+      'Can you state why eigenvectors must be nonzero?',
+      'Can you recognize the scalar lambda in Av = lambda v?',
+    ],
+  },
+}
 
 const commonMistakes = {
   sign: {
@@ -516,6 +850,9 @@ const nowIso = () => new Date().toISOString()
 export const getConcept = (conceptId: ConceptId) =>
   concepts.find((concept) => concept.id === conceptId) ?? concepts[0]
 
+export const getLesson = (conceptId: ConceptId) =>
+  lessonLibrary[conceptId] ?? lessonLibrary.vectors
+
 export const getProblem = (problemId: string) =>
   problemBank.find((problem) => problem.id === problemId) ?? problemBank[0]
 
@@ -670,6 +1007,7 @@ export const createLearnerProfile = (
     currentConceptId: startingPoint,
     mastery,
     confidence,
+    lessonReads: {},
     problemSets: [],
     attempts: [],
     mistakes: [],
@@ -933,6 +1271,29 @@ export const addProblemSet = (
         createdAt: nextSet.createdAt,
         title: 'Problem set created',
         detail: `${nextSet.title} is ready.`,
+      },
+      ...profile.activity,
+    ].slice(0, 30),
+  }
+}
+
+export const markLessonRead = (
+  profile: LearnerProfile,
+  conceptId: ConceptId,
+): LearnerProfile => {
+  const createdAt = nowIso()
+  return {
+    ...profile,
+    lessonReads: {
+      ...(profile.lessonReads ?? {}),
+      [conceptId]: createdAt,
+    },
+    activity: [
+      {
+        id: uid('activity'),
+        createdAt,
+        title: 'Lesson completed',
+        detail: `${getConcept(conceptId).shortTitle}: theory read before practice.`,
       },
       ...profile.activity,
     ].slice(0, 30),

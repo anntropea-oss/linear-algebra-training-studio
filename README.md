@@ -12,6 +12,7 @@ npm run dev
 ## Current Experience
 
 - Choose a starting point: brand new, systems, matrices, or advanced review.
+- Read concept lessons with definitions, theory, and worked examples before practice.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
 - Ask for AI-style guided steps when you do not know how to start.
