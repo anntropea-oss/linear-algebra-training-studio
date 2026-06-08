@@ -2,13 +2,17 @@
 
 A freestanding React app for learning linear algebra from any starting point. The app creates active problem sets, gives real-time feedback while the learner works, tracks mistakes and progress, and adapts the next set toward repair, review, or challenge.
 
-Live demo: https://anntropea-oss.github.io/linear-algebra-training-studio/
-
 ## Run Locally
 
 ```bash
 npm install
 npm run dev
+```
+
+For GitHub Pages-compatible production builds:
+
+```bash
+npm run build:pages
 ```
 
 ## Current Experience

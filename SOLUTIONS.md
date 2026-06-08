@@ -297,7 +297,15 @@
 ## [2026-06-07 22:39] Shareable Demo Was Not Configured
 - Problem: The project did not have a public demo URL; the GitHub Pages API returned 404 for the repository's Pages configuration.
 - Root Cause: GitHub Pages had not been enabled for the repository, and the Vite build did not have a Pages-specific base path command.
-- Solution: Added a `build:pages` script, documented the live demo URL in the README, and published the current production build to the `gh-pages` branch with GitHub Pages enabled.
+- Solution: Added a `build:pages` script and published the current production build to the `gh-pages` branch, then moved to a temporary tunnel after GitHub Pages could not be enabled for the private repository.
 - Files Changed: `package.json`, `README.md`, `SOLUTIONS.md`, `gh-pages` branch deployment files
-- Status: Resolved
-- Verification: `npm run build:pages`, `npm run lint`, `git diff --check`, and HTTP verification of the GitHub Pages URL.
+- Status: Workaround
+- Verification: `npm run build:pages`, `npm run lint`, `git diff --check`, and HTTP verification of the temporary tunnel URL.
+
+## [2026-06-07 22:40] GitHub Pages Blocked For Private Repository
+- Problem: Enabling GitHub Pages failed with `Your current plan does not support GitHub Pages for this repository.`
+- Root Cause: The repository is private and the current GitHub plan does not support Pages for it.
+- Solution: Removed the premature permanent demo link from the README, kept the Pages-compatible build command for future hosting, and started a verified localtunnel demo backed by the live Vite server.
+- Files Changed: `README.md`, `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `gh api --method POST repos/anntropea-oss/linear-algebra-training-studio/pages` returned HTTP 422, while `curl -I https://rich-rabbits-give.loca.lt` returned HTTP 200.
