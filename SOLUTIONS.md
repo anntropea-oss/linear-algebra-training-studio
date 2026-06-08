@@ -213,3 +213,27 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: Open product gap identified during curriculum review; no code verification applies yet.
+
+## [2026-06-07 22:14] Diagnostic And Lesson Check Foundation
+- Problem: The app had no diagnostic placement, prerequisite readiness map, or active checks for understanding before practice, so personalization still depended too much on the learner's self-selected starting point.
+- Root Cause: Earlier milestones added lesson-first flow and guided support before building the adaptive routing layer.
+- Solution: Added diagnostic questions, diagnostic scoring, prerequisite graph/status, lesson check questions, lesson-check gating before practice unlocks, diagnostic placement application, profile persistence normalization, and documentation for the adaptive foundation.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/domain/storage.ts`, `src/App.tsx`, `src/App.css`, `README.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `docs/CURRICULUM_SKILL_MAP.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after adding diagnostic and lesson-check support.
+
+## [2026-06-07 22:14] Diagnostic Placement Reset Lesson History
+- Problem: The first diagnostic placement implementation cleared `lessonReads` and `lessonCheckRecords`, which would make learners repeat lessons they had already completed after retaking the diagnostic.
+- Root Cause: `applyDiagnosticPlacement(...)` rebuilt the active path from diagnostic evidence and reset lesson state as part of that rebuild.
+- Solution: Preserved existing `lessonReads` and `lessonCheckRecords` while still rebuilding the active problem set around the diagnostic recommendation.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after preserving lesson history during placement.
+
+## [2026-06-07 22:22] Adaptive Foundation Browser Verification Workaround
+- Problem: In-app browser verification for the diagnostic/adaptive foundation failed again with `Browser is not available: iab`.
+- Root Cause: No session-owned in-app browser backend was available to this thread.
+- Solution: Verified the app with production build, lint, diff checks, and the local Vite server instead.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `npm run build`, `npm run lint`, `git diff --check`, and `curl -I http://127.0.0.1:5173/` completed successfully.

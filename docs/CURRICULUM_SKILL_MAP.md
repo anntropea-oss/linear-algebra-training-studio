@@ -24,6 +24,19 @@ The learner can start at:
 
 Earlier concepts are not skipped forever. If a later answer reveals a prerequisite gap, the next repair set can pull the learner backward.
 
+## Prerequisite Graph
+
+- Vectors: none
+- Span: vectors
+- Systems: vectors
+- Row Reduction: systems
+- Matrices as Transformations: vectors, systems
+- Subspaces: span, row reduction
+- Orthogonality: vectors, subspaces
+- Eigenvalues: matrix transformations, subspaces
+
+The app now displays prerequisite readiness for the active concept.
+
 ## Lesson Structure
 
 Every concept now starts with theoretical grounding before problem sets:
@@ -36,6 +49,8 @@ Every concept now starts with theoretical grounding before problem sets:
 - readiness checks
 
 The goal is to teach the mental model before asking for computation.
+
+Lesson checks now require learners to answer concept questions before the answer workspace opens.
 
 ## Mastery Bands
 

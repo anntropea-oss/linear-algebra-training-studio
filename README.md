@@ -12,7 +12,9 @@ npm run dev
 ## Current Experience
 
 - Choose a starting point: brand new, systems, matrices, or advanced review.
+- Complete a short diagnostic placement check to refine the starting point.
 - Read concept lessons with definitions, theory, and worked examples before practice.
+- Pass lesson checks before opening the active problem set.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
 - Ask for AI-style guided steps when you do not know how to start.
@@ -33,6 +35,7 @@ npm run dev
 
 Add math-aware answer parsing and richer problem authoring:
 
+- diagnostic-driven prerequisite repair
 - vector and matrix equivalence checks
 - step-based submissions
 - larger verified problem bank

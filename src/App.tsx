@@ -18,14 +18,19 @@ import {
 import './App.css'
 import {
   addProblemSet,
+  applyDiagnosticPlacement,
   conceptSequenceFrom,
   concepts,
   createGuidedSolution,
+  diagnosticQuestions,
+  evaluateLessonChecks,
   evaluateResponse,
   getActiveSet,
   getConcept,
   getLesson,
+  getLessonChecks,
   getNextProblemInSet,
+  getPrerequisiteStatus,
   markLessonRead,
   overallMastery,
   resolveMistake,
@@ -90,10 +95,34 @@ const App = () => {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
   const [guideLevels, setGuideLevels] = useState<Record<string, number>>({})
+  const [diagnosticResponses, setDiagnosticResponses] = useState<Record<string, string>>(
+    profile.diagnostic?.responses ?? {},
+  )
+  const [lessonCheckAnswers, setLessonCheckAnswers] = useState<
+    Record<string, string>
+  >({})
   const activeSet = getActiveSet(profile, selectedSetId)
   const activeConcept = getConcept(activeSet.conceptId)
   const activeLesson = getLesson(activeSet.conceptId)
+  const activeLessonChecks = getLessonChecks(activeSet.conceptId)
+  const savedLessonCheck = profile.lessonCheckRecords?.[activeSet.conceptId]
+  const lessonCheckResponses = Object.fromEntries(
+    activeLessonChecks.map((check) => [
+      check.id,
+      lessonCheckAnswers[`${activeSet.conceptId}:${check.id}`] ??
+        savedLessonCheck?.responses[check.id] ??
+        '',
+    ]),
+  )
+  const lessonCheckResult = evaluateLessonChecks(
+    activeSet.conceptId,
+    lessonCheckResponses,
+  )
+  const prerequisiteStatus = getPrerequisiteStatus(profile, activeSet.conceptId)
   const lessonRead = Boolean(profile.lessonReads?.[activeSet.conceptId])
+  const diagnosticComplete = diagnosticQuestions.every(
+    (question) => diagnosticResponses[question.id],
+  )
   const activeProblem = getNextProblemInSet(activeSet)
   const activeProgress = setCompletion(activeSet)
   const currentProgress = activeSet.progress[activeProblem.id]
@@ -124,6 +153,8 @@ const App = () => {
     setDrafts({})
     setHintLevels({})
     setGuideLevels({})
+    setDiagnosticResponses(nextProfile.diagnostic?.responses ?? {})
+    setLessonCheckAnswers({})
   }
 
   const handleAddSet = (mode: SetMode) => {
@@ -172,7 +203,20 @@ const App = () => {
   }
 
   const handleMarkLessonRead = () => {
-    setProfile(markLessonRead(profile, activeSet.conceptId))
+    if (!lessonCheckResult.passed) return
+    setProfile(markLessonRead(profile, activeSet.conceptId, lessonCheckResponses))
+  }
+
+  const handleDiagnosticSubmit = () => {
+    if (!diagnosticComplete) return
+    const nextProfile = applyDiagnosticPlacement(profile, diagnosticResponses)
+    setProfile(nextProfile)
+    setSelectedStart(nextProfile.startingPoint)
+    setSelectedSetId(nextProfile.problemSets[0]?.id)
+    setDrafts({})
+    setHintLevels({})
+    setGuideLevels({})
+    setLessonCheckAnswers({})
   }
 
   return (
@@ -267,6 +311,73 @@ const App = () => {
             </div>
           </div>
         </header>
+
+        <section className="panel diagnostic-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Placement diagnostic</p>
+              <h2>
+                {profile.diagnostic
+                  ? `${profile.diagnostic.score}/${profile.diagnostic.total} placement`
+                  : 'Find the right starting point'}
+              </h2>
+            </div>
+            <Target size={18} />
+          </div>
+          <div className="diagnostic-grid">
+            {diagnosticQuestions.map((question) => {
+              const selected = diagnosticResponses[question.id]
+              const correct = selected === question.correctChoiceId
+              return (
+                <div className="diagnostic-question" key={question.id}>
+                  <span>{getConcept(question.conceptId).shortTitle}</span>
+                  <strong>{question.prompt}</strong>
+                  <div className="choice-row">
+                    {question.choices.map((choice) => (
+                      <button
+                        className={selected === choice.id ? 'selected' : ''}
+                        key={choice.id}
+                        onClick={() =>
+                          setDiagnosticResponses((currentResponses) => ({
+                            ...currentResponses,
+                            [question.id]: choice.id,
+                          }))
+                        }
+                        type="button"
+                      >
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                  {selected ? (
+                    <p className={correct ? 'choice-feedback correct' : 'choice-feedback'}>
+                      {correct ? 'Ready.' : question.feedback}
+                    </p>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+          <div className="diagnostic-actions">
+            <button
+              className="primary"
+              disabled={!diagnosticComplete}
+              onClick={handleDiagnosticSubmit}
+              type="button"
+            >
+              <CheckCircle2 size={17} />
+              Apply placement
+            </button>
+            {profile.diagnostic ? (
+              <p>
+                Recommended start:{' '}
+                <strong>{getConcept(profile.diagnostic.recommendedStart).title}</strong>
+              </p>
+            ) : (
+              <p>Answer every item to let the app place you before practice.</p>
+            )}
+          </div>
+        </section>
 
         <section className="path-strip">
           {path.map((concept, index) => (
@@ -370,7 +481,53 @@ const App = () => {
                     ))}
                   </ul>
                 </section>
-                <button className="primary" onClick={handleMarkLessonRead} type="button">
+                <section className="lesson-check-panel">
+                  <h4>Check Your Understanding</h4>
+                  {lessonCheckResult.results.map((result) => (
+                    <div className="lesson-check-question" key={result.check.id}>
+                      <strong>{result.check.prompt}</strong>
+                      <div className="choice-row">
+                        {result.check.choices.map((choice) => (
+                          <button
+                            className={
+                              result.selectedChoiceId === choice.id ? 'selected' : ''
+                            }
+                            key={choice.id}
+                            onClick={() =>
+                              setLessonCheckAnswers((currentAnswers) => ({
+                                ...currentAnswers,
+                                [`${activeSet.conceptId}:${result.check.id}`]:
+                                  choice.id,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {choice.label}
+                          </button>
+                        ))}
+                      </div>
+                      {result.selectedChoiceId ? (
+                        <p
+                          className={
+                            result.correct
+                              ? 'choice-feedback correct'
+                              : 'choice-feedback'
+                          }
+                        >
+                          {result.correct
+                            ? result.check.correctFeedback
+                            : result.check.incorrectFeedback}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </section>
+                <button
+                  className="primary"
+                  disabled={!lessonCheckResult.passed}
+                  onClick={handleMarkLessonRead}
+                  type="button"
+                >
                   <CheckCircle2 size={17} />
                   Start problem set
                 </button>
@@ -542,6 +699,36 @@ const App = () => {
                 </section>
               </>
             )}
+
+            <section className="panel prerequisite-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Prerequisites</p>
+                  <h2>
+                    {prerequisiteStatus.length ? 'Readiness map' : 'Foundation concept'}
+                  </h2>
+                </div>
+                <Target size={18} />
+              </div>
+              {prerequisiteStatus.length ? (
+                <div className="prerequisite-list">
+                  {prerequisiteStatus.map((status) => (
+                    <div
+                      className={status.ready ? 'ready' : 'needs-work'}
+                      key={status.conceptId}
+                    >
+                      <strong>{status.title}</strong>
+                      <span>{status.mastery}% mastery</span>
+                      <span>
+                        {status.lessonComplete ? 'lesson complete' : 'lesson needed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">This is the first layer of the course.</p>
+              )}
+            </section>
 
             <section className="panel repair-panel">
               <div className="panel-heading">
