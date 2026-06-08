@@ -60,6 +60,7 @@ The app should care about evidence:
 - Diagnostic placement recommends a starting concept.
 - Prerequisite map shows readiness for advanced concepts.
 - Lesson checks gate practice after theory.
+- University-level concept map extends through determinants, inverses, fundamental subspaces, rank-nullity, least squares, change of basis, diagonalization, and proof techniques.
 - Real-time response evaluation.
 - Guided solution function for stuck learners.
 - Adaptive, repair, and challenge set generation.

@@ -253,3 +253,35 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: The `caffeinate -dimsu` command is running in active session `72848`.
+
+## [2026-06-07 22:31] Curriculum Map Missing University Topics
+- Problem: The concept map still stopped at a compact eight-topic path and omitted core university-level topics such as determinants, inverses, fundamental subspaces, rank-nullity, change of basis, diagonalization, least squares, and proof techniques.
+- Root Cause: Earlier milestones focused on tutor flow, diagnostics, and lesson gating before broadening the full course scope.
+- Solution: Added the missing topics as first-class concepts with prerequisites, lessons, diagnostic questions, lesson checks, and starter problems.
+- Files Changed: `src/domain/tutorEngine.ts`, `README.md`, `docs/CURRICULUM_SKILL_MAP.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after expanding the curriculum map.
+
+## [2026-06-07 22:31] Saved Profiles Missing New Concept Keys
+- Problem: Existing localStorage learner profiles created before the curriculum expansion would not have mastery or confidence values for the new concepts.
+- Root Cause: The persistence normalization filled missing support fields but did not backfill newly added concept keys.
+- Solution: Updated profile normalization to merge saved mastery/confidence with a fresh generated profile, preserving existing values while adding defaults for new concepts.
+- Files Changed: `src/domain/storage.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after the migration update.
+
+## [2026-06-07 22:31] Least Squares Accepted Answer Token Mismatch
+- Problem: A new least-squares starter problem accepted `A^T r = 0`, but its `mustInclude` rule required the word `orthogonal`, so that accepted answer form would still be scored incomplete.
+- Root Cause: The accepted answer list and required token rule were not aligned for an equivalent mathematical statement.
+- Solution: Removed the `mustInclude` requirement from that problem so either orthogonality language or the normal-equation condition can be accepted.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after aligning the answer rule.
+
+## [2026-06-07 22:31] Expanded Diagnostic Advanced Fallback Was Stale
+- Problem: If a learner answered every expanded diagnostic item correctly, the fallback recommended start still pointed to `eigenvalues`, even though the curriculum now extends beyond eigenvalues.
+- Root Cause: The diagnostic fallback was written for the older eight-topic path where eigenvalues was the final advanced topic.
+- Solution: Updated the all-correct diagnostic fallback to recommend `diagonalization`, a later advanced topic in the expanded sequence.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run build`, `npm run lint`, and `git diff --check` completed successfully after updating the fallback.

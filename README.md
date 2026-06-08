@@ -36,6 +36,7 @@ npm run dev
 Add math-aware answer parsing and richer problem authoring:
 
 - diagnostic-driven prerequisite repair
+- expanded starter problems for every university-level concept
 - vector and matrix equivalence checks
 - step-based submissions
 - larger verified problem bank
