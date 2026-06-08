@@ -205,3 +205,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `npm run build`, `npm run lint`, `git diff --check`, and `curl -I http://127.0.0.1:5173/` completed successfully.
+
+## [2026-06-07 22:04] Pedagogical Adaptivity Gaps
+- Problem: The app now teaches concepts before practice, but it still lacks several elements needed for efficient university-level learning: diagnostic placement, prerequisite repair, spaced retrieval, transfer problems, mastery calibration, and richer individual adaptation.
+- Root Cause: The current MVP focused on lesson-first flow, live problem solving, and guided support before adding a full learning science model.
+- Solution: No implementation applied yet; identified the missing instructional systems and recommended a development sequence for future work.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: Open product gap identified during curriculum review; no code verification applies yet.
