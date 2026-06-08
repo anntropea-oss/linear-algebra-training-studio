@@ -173,3 +173,19 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `npm run build`, `npm run lint`, `git diff --check`, `curl -I http://127.0.0.1:5173/`, and `curl -L --max-time 15 http://127.0.0.1:5173/` completed successfully.
+
+## [2026-06-07 21:42] In-App Demo Browser Unavailable
+- Problem: The user asked to show the new demo, but the in-app Browser backend again reported `Browser is not available: iab`.
+- Root Cause: No session-owned in-app browser backend was available to this thread.
+- Solution: Started the local Vite dev server, opened `http://127.0.0.1:5173/` in the system browser, and verified the local app responds.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `curl -I http://127.0.0.1:5173/` returned `HTTP/1.1 200 OK`.
+
+## [2026-06-07 21:43] Detached Demo Server Exited
+- Problem: Moving the Vite demo server into a detached `nohup` process caused the process to exit after printing the local URL, so `curl` could not connect to `127.0.0.1:5173`.
+- Root Cause: Unknown; the detached child process did not stay alive in this execution environment.
+- Solution: Restarted the Vite demo server in an interactive session and reopened `http://127.0.0.1:5173/` in the system browser.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: The interactive server reported `VITE v8.0.16 ready`, and `curl -I http://127.0.0.1:5173/` returned `HTTP/1.1 200 OK`.
