@@ -1,10 +1,36 @@
 import { createLearnerProfile } from './tutorEngine'
-import type { ConceptId, LearnerProfile } from './tutorEngine'
+import type { ConceptId, LearnerProfile, ProblemProgress } from './tutorEngine'
 
 const STORAGE_KEY = 'linear-algebra-live-tutor:v1'
 
 const canStore = () =>
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+
+const normalizeProfile = (profile: LearnerProfile): LearnerProfile => ({
+  ...profile,
+  lessonReads: profile.lessonReads ?? {},
+  problemSets: profile.problemSets.map((set) => ({
+    ...set,
+    progress: Object.fromEntries(
+      Object.entries(set.progress).map(([problemId, progress]) => {
+        const normalized = progress as ProblemProgress
+        return [
+          problemId,
+          {
+            ...normalized,
+            hintsUsed: normalized.hintsUsed ?? 0,
+            guideStepsUsed: normalized.guideStepsUsed ?? 0,
+          },
+        ]
+      }),
+    ),
+  })),
+  attempts: profile.attempts.map((attempt) => ({
+    ...attempt,
+    hintsUsed: attempt.hintsUsed ?? 0,
+    guideStepsUsed: attempt.guideStepsUsed ?? 0,
+  })),
+})
 
 export const loadProfile = (): LearnerProfile => {
   if (!canStore()) return createLearnerProfile()
@@ -16,7 +42,7 @@ export const loadProfile = (): LearnerProfile => {
     if (!parsed.mastery || !parsed.problemSets || !parsed.currentConceptId) {
       return createLearnerProfile()
     }
-    return parsed
+    return normalizeProfile(parsed)
   } catch {
     return createLearnerProfile()
   }

@@ -5,6 +5,8 @@ The rebuilt app focuses on real-time learning, not after-the-fact reporting.
 ## Key Principles
 
 - Start from the learner's actual entry point.
+- Teach the concept before asking the learner to perform it.
+- Use definitions, intuition, and worked examples before independent practice.
 - Make partial work visible and useful.
 - Give feedback before the learner submits.
 - Reveal help progressively when the learner does not know how to begin.
@@ -41,6 +43,19 @@ When a learner asks for help, the tutor should:
 - preserve the learner's work area
 - record guided steps used on submission
 
+## Lesson Before Practice
+
+Each concept begins with:
+
+- a big idea in plain language
+- why the concept matters
+- essential definitions
+- core theory statements
+- a worked example
+- readiness checks before the answer box appears
+
+Practice is intentionally gated until the lesson is marked complete. This does not prove mastery, but it prevents the app from treating linear algebra as only a problem generator.
+
 ## What Still Needs Depth
 
 - Better parsing for equivalent algebraic answers.
@@ -49,3 +64,4 @@ When a learner asks for help, the tutor should:
 - Problem variants that adapt difficulty within a session.
 - A way for learners to enter multi-step work, not just final answers.
 - A backend AI layer that can explain verified steps without inventing math.
+- More robust lesson sequencing with short checks for understanding before unlocking practice.

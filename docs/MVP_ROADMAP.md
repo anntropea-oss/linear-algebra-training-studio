@@ -5,6 +5,7 @@
 Status: current app
 
 - Learner chooses a starting point.
+- Learner reads concept theory before problem sets unlock.
 - App creates active problem sets.
 - Learner works problems in real time.
 - Live coach detects partial progress and common mistakes.
@@ -13,6 +14,7 @@ Status: current app
 
 ## Phase 2: Math-Aware Checking
 
+- Add short checks for understanding at the end of lessons.
 - Parse vector answers robustly.
 - Parse matrix answers robustly.
 - Accept equivalent algebraic forms.

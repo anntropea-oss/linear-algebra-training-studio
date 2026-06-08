@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import {
   Activity,
   ArrowRight,
+  BookOpen,
   Brain,
   CheckCircle2,
   CircleDot,
@@ -23,7 +24,9 @@ import {
   evaluateResponse,
   getActiveSet,
   getConcept,
+  getLesson,
   getNextProblemInSet,
+  markLessonRead,
   overallMastery,
   resolveMistake,
   setCompletion,
@@ -88,6 +91,9 @@ const App = () => {
   const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
   const [guideLevels, setGuideLevels] = useState<Record<string, number>>({})
   const activeSet = getActiveSet(profile, selectedSetId)
+  const activeConcept = getConcept(activeSet.conceptId)
+  const activeLesson = getLesson(activeSet.conceptId)
+  const lessonRead = Boolean(profile.lessonReads?.[activeSet.conceptId])
   const activeProblem = getNextProblemInSet(activeSet)
   const activeProgress = setCompletion(activeSet)
   const currentProgress = activeSet.progress[activeProblem.id]
@@ -101,8 +107,8 @@ const App = () => {
     draftAnswer,
     guideLevel,
   )
-  const recommendedConcept = getConcept(profile.currentConceptId)
-  const path = conceptSequenceFrom(profile.currentConceptId).slice(0, 5)
+  const recommendedConcept = activeConcept
+  const path = conceptSequenceFrom(activeSet.conceptId).slice(0, 5)
   const openMistakes = profile.mistakes.filter((mistake) => !mistake.resolved)
   const nextRepair = openMistakes[0]
   const currentMastery = overallMastery(profile)
@@ -163,6 +169,10 @@ const App = () => {
           1,
       ),
     }))
+  }
+
+  const handleMarkLessonRead = () => {
+    setProfile(markLessonRead(profile, activeSet.conceptId))
   }
 
   return (
@@ -311,132 +321,227 @@ const App = () => {
               </button>
             </div>
 
-            <div className="problem-card">
-              <div className="problem-meta">
-                <span>{getConcept(activeProblem.conceptId).shortTitle}</span>
-                <span>Problem {activeSet.problemIds.indexOf(activeProblem.id) + 1}</span>
-                <span>{activeProgress.percent}% set complete</span>
-                {guideLevel > 0 ? (
-                  <span>
-                    AI guide {guideLevel}/{guidedSolution.steps.length}
-                  </span>
-                ) : null}
+            {!lessonRead ? (
+              <div className="lesson-card">
+                <div className="problem-meta">
+                  <span>{activeConcept.shortTitle}</span>
+                  <span>Lesson before practice</span>
+                  <span>{activeProgress.percent}% set complete</span>
+                </div>
+                <div className="lesson-intro">
+                  <BookOpen size={24} />
+                  <div>
+                    <p className="eyebrow">Theory first</p>
+                    <h3>{activeLesson.bigIdea}</h3>
+                    <p>{activeLesson.whyItMatters}</p>
+                  </div>
+                </div>
+                <div className="definition-grid">
+                  {activeLesson.definitions.map((definition) => (
+                    <div key={definition.term}>
+                      <strong>{definition.term}</strong>
+                      <p>{definition.meaning}</p>
+                    </div>
+                  ))}
+                </div>
+                <section className="lesson-section">
+                  <h4>Core Theory</h4>
+                  <ul>
+                    {activeLesson.theory.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="worked-example">
+                  <h4>Worked Example</h4>
+                  <strong>{activeLesson.workedExample.prompt}</strong>
+                  <ol>
+                    {activeLesson.workedExample.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  <p>{activeLesson.workedExample.takeaway}</p>
+                </section>
+                <section className="readiness-check">
+                  <h4>Before You Practice</h4>
+                  <ul>
+                    {activeLesson.readinessChecks.map((check) => (
+                      <li key={check}>{check}</li>
+                    ))}
+                  </ul>
+                </section>
+                <button className="primary" onClick={handleMarkLessonRead} type="button">
+                  <CheckCircle2 size={17} />
+                  Start problem set
+                </button>
               </div>
-              <h3>{activeProblem.prompt}</h3>
-              <textarea
-                aria-label="Answer"
-                onChange={(event) =>
-                  setDrafts((currentDrafts) => ({
-                    ...currentDrafts,
-                    [activeProblem.id]: event.target.value,
-                  }))
-                }
-                placeholder="Work here. The coach responds as you type."
-                value={draftAnswer}
-              />
-              <div className="problem-actions">
-                <button
-                  onClick={() =>
-                    setHintLevels((currentLevels) => ({
-                      ...currentLevels,
-                      [activeProblem.id]: Math.min(
-                        2,
-                        (currentLevels[activeProblem.id] ?? 0) + 1,
-                      ),
+            ) : (
+              <div className="problem-card">
+                <div className="problem-meta">
+                  <span>{getConcept(activeProblem.conceptId).shortTitle}</span>
+                  <span>Problem {activeSet.problemIds.indexOf(activeProblem.id) + 1}</span>
+                  <span>{activeProgress.percent}% set complete</span>
+                  <span>Lesson complete</span>
+                  {guideLevel > 0 ? (
+                    <span>
+                      AI guide {guideLevel}/{guidedSolution.steps.length}
+                    </span>
+                  ) : null}
+                </div>
+                <h3>{activeProblem.prompt}</h3>
+                <textarea
+                  aria-label="Answer"
+                  onChange={(event) =>
+                    setDrafts((currentDrafts) => ({
+                      ...currentDrafts,
+                      [activeProblem.id]: event.target.value,
                     }))
                   }
-                  type="button"
-                >
-                  <Lightbulb size={17} />
-                  Hint
-                </button>
-                <button onClick={handleRevealGuideStep} type="button">
-                  <Brain size={17} />
-                  I don't know yet
-                </button>
-                <button
-                  className="primary"
-                  disabled={!draftAnswer.trim() || activeSet.status === 'completed'}
-                  onClick={handleSubmit}
-                  type="button"
-                >
-                  <CheckCircle2 size={17} />
-                  Submit
-                </button>
-              </div>
-              {hintLevel > 0 ? (
-                <div className="hint-box">
-                  <strong>Hint {hintLevel}</strong>
-                  <p>{hintLevel === 1 ? activeProblem.hint : activeProblem.deeperHint}</p>
+                  placeholder="Work here. The coach responds as you type."
+                  value={draftAnswer}
+                />
+                <div className="problem-actions">
+                  <button
+                    onClick={() =>
+                      setHintLevels((currentLevels) => ({
+                        ...currentLevels,
+                        [activeProblem.id]: Math.min(
+                          2,
+                          (currentLevels[activeProblem.id] ?? 0) + 1,
+                        ),
+                      }))
+                    }
+                    type="button"
+                  >
+                    <Lightbulb size={17} />
+                    Hint
+                  </button>
+                  <button onClick={handleRevealGuideStep} type="button">
+                    <Brain size={17} />
+                    I don't know yet
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={!draftAnswer.trim() || activeSet.status === 'completed'}
+                    onClick={handleSubmit}
+                    type="button"
+                  >
+                    <CheckCircle2 size={17} />
+                    Submit
+                  </button>
                 </div>
-              ) : null}
-            </div>
+                {hintLevel > 0 ? (
+                  <div className="hint-box">
+                    <strong>Hint {hintLevel}</strong>
+                    <p>{hintLevel === 1 ? activeProblem.hint : activeProblem.deeperHint}</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </article>
 
           <aside className="coach-column">
-            <section className={`panel coach-panel ${liveFeedback.tone}`}>
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Live coach</p>
-                  <h2>{liveFeedback.headline}</h2>
-                </div>
-                {liveFeedback.tone === 'correct' ? (
-                  <CheckCircle2 size={18} />
-                ) : liveFeedback.tone === 'mistake' ? (
-                  <TriangleAlert size={18} />
-                ) : (
-                  <CircleDot size={18} />
-                )}
-              </div>
-              <p>{liveFeedback.detail}</p>
-              <div className="next-action">
-                <strong>Next move</strong>
-                <span>{liveFeedback.nextAction}</span>
-              </div>
-            </section>
+            {lessonRead ? (
+              <>
+                <section className={`panel coach-panel ${liveFeedback.tone}`}>
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">Live coach</p>
+                      <h2>{liveFeedback.headline}</h2>
+                    </div>
+                    {liveFeedback.tone === 'correct' ? (
+                      <CheckCircle2 size={18} />
+                    ) : liveFeedback.tone === 'mistake' ? (
+                      <TriangleAlert size={18} />
+                    ) : (
+                      <CircleDot size={18} />
+                    )}
+                  </div>
+                  <p>{liveFeedback.detail}</p>
+                  <div className="next-action">
+                    <strong>Next move</strong>
+                    <span>{liveFeedback.nextAction}</span>
+                  </div>
+                </section>
 
-            <section className="panel solution-panel guide-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">AI guide</p>
-                  <h2>{guidedSolution.headline}</h2>
-                </div>
-                <Brain size={18} />
-              </div>
-              <div className="guide-nudge">
-                <strong>Coach nudge</strong>
-                <span>{guidedSolution.nudge}</span>
-              </div>
-              {guidedSolution.revealedSteps.length ? (
-                <ol className="guide-steps">
-                  {guidedSolution.revealedSteps.map((step) => (
-                    <li key={step.id}>
-                      <strong>{step.title}</strong>
-                      <p>{step.coachPrompt}</p>
-                      <span>{step.support}</span>
-                      <div>
-                        <b>Reveal</b>
-                        <span>{step.reveal}</span>
-                      </div>
-                      <em>{step.check}</em>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="muted">
-                  Stuck is useful evidence. Start with the smallest next move.
-                </p>
-              )}
-              <button
-                className={guidedSolution.completed ? '' : 'primary'}
-                disabled={guidedSolution.completed}
-                onClick={handleRevealGuideStep}
-                type="button"
-              >
-                <Brain size={17} />
-                {guidedSolution.completed ? 'Guide complete' : 'Next guided step'}
-              </button>
-            </section>
+                <section className="panel solution-panel guide-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">AI guide</p>
+                      <h2>{guidedSolution.headline}</h2>
+                    </div>
+                    <Brain size={18} />
+                  </div>
+                  <div className="guide-nudge">
+                    <strong>Coach nudge</strong>
+                    <span>{guidedSolution.nudge}</span>
+                  </div>
+                  {guidedSolution.revealedSteps.length ? (
+                    <ol className="guide-steps">
+                      {guidedSolution.revealedSteps.map((step) => (
+                        <li key={step.id}>
+                          <strong>{step.title}</strong>
+                          <p>{step.coachPrompt}</p>
+                          <span>{step.support}</span>
+                          <div>
+                            <b>Reveal</b>
+                            <span>{step.reveal}</span>
+                          </div>
+                          <em>{step.check}</em>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="muted">
+                      Stuck is useful evidence. Start with the smallest next move.
+                    </p>
+                  )}
+                  <button
+                    className={guidedSolution.completed ? '' : 'primary'}
+                    disabled={guidedSolution.completed}
+                    onClick={handleRevealGuideStep}
+                    type="button"
+                  >
+                    <Brain size={17} />
+                    {guidedSolution.completed ? 'Guide complete' : 'Next guided step'}
+                  </button>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="panel coach-panel working">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">Learning coach</p>
+                      <h2>Build the model first</h2>
+                    </div>
+                    <BookOpen size={18} />
+                  </div>
+                  <p>
+                    Read the theory, vocabulary, and worked example before opening
+                    the problem workspace.
+                  </p>
+                  <div className="next-action">
+                    <strong>Next move</strong>
+                    <span>Explain the big idea in your own words, then start practice.</span>
+                  </div>
+                </section>
+
+                <section className="panel solution-panel guide-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">Readiness</p>
+                      <h2>Before practice</h2>
+                    </div>
+                  </div>
+                  <ul className="lesson-checklist">
+                    {activeLesson.readinessChecks.map((check) => (
+                      <li key={check}>{check}</li>
+                    ))}
+                  </ul>
+                </section>
+              </>
+            )}
 
             <section className="panel repair-panel">
               <div className="panel-heading">

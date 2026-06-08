@@ -7,12 +7,14 @@ Build a real-time linear algebra tutor that lets a learner start anywhere, solve
 ## Core Loop
 
 1. Learner chooses a starting point.
-2. App creates an adaptive problem set for that point.
-3. Learner works in the answer box.
-4. Live coach reacts to the answer in real time.
-5. Learner asks for guided support if they are stuck.
-6. Learner submits the attempt.
-7. App updates mastery, confidence, support used, mistake records, repair queue, and next problem set recommendations.
+2. App opens the concept lesson for that point.
+3. Learner reads the big idea, definitions, theory, and worked example.
+4. App unlocks the adaptive problem set after the learner starts practice.
+5. Learner works in the answer box.
+6. Live coach reacts to the answer in real time.
+7. Learner asks for guided support if they are stuck.
+8. Learner submits the attempt.
+9. App updates mastery, confidence, lesson completion, support used, mistake records, repair queue, and next problem set recommendations.
 
 ## Primary Experience
 
@@ -20,6 +22,8 @@ The first screen is not an instructor dashboard. It is a learning cockpit:
 
 - starting point selector
 - concept path
+- theory lesson before practice
+- definitions and worked examples
 - active problem sets
 - live coach feedback
 - hints and worked solution steps
@@ -33,6 +37,7 @@ The first screen is not an instructor dashboard. It is a learning cockpit:
 The app should care about evidence:
 
 - what answer the learner tried
+- whether the prerequisite lesson was read
 - what concept the problem tests
 - what mistake pattern appeared
 - how many hints or guided steps the learner used
@@ -43,6 +48,7 @@ The app should care about evidence:
 
 - Single learner profile persisted locally.
 - Multiple active problem sets.
+- Concept lessons gate problem practice.
 - Real-time response evaluation.
 - Guided solution function for stuck learners.
 - Adaptive, repair, and challenge set generation.
