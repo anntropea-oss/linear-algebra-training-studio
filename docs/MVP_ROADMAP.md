@@ -24,7 +24,8 @@ Status: started
 - Parse matrix answers entry by entry for bracketed and row-major forms.
 - Keep text accepted answers as fallback while structured problem rubrics expand.
 - Accept equivalent algebraic forms.
-- Capture step-by-step work.
+- Capture step-by-step work and save it with attempts.
+- Give live step-level feedback against verified solution paths.
 - Score using concept-specific rubrics.
 
 ## Phase 2A: Stronger Adaptivity

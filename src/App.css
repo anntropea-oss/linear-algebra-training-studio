@@ -441,6 +441,92 @@ textarea {
   width: 100%;
 }
 
+.answer-field {
+  display: grid;
+  gap: 7px;
+}
+
+.answer-field > span,
+.work-step-heading h4 {
+  color: #17211f;
+  font-size: 0.92rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.work-step-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.work-step-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.work-step-heading > span {
+  align-items: center;
+  background: #17211f;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 850;
+  justify-content: center;
+  min-width: 46px;
+  padding: 5px 10px;
+}
+
+.work-step-list {
+  display: grid;
+  gap: 8px;
+}
+
+.work-step-row {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #d8e1df;
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  padding: 10px;
+}
+
+.work-step-row.on-track {
+  border-color: #0f766e;
+}
+
+.work-step-row.needs-work {
+  border-color: #be123c;
+}
+
+.work-step-number {
+  align-items: center;
+  background: #eef3f1;
+  border-radius: 8px;
+  color: #17211f;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 850;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.work-step-input {
+  min-height: 64px;
+}
+
+.work-step-feedback {
+  color: #49534f;
+  font-size: 0.84rem;
+  font-weight: 700;
+  grid-column: 2;
+}
+
 .primary {
   background: #17211f;
   border-color: #17211f;
@@ -531,6 +617,36 @@ button:disabled {
 .guide-steps em {
   font-style: normal;
   font-weight: 750;
+}
+
+.step-feedback-list {
+  display: grid;
+  gap: 7px;
+}
+
+.step-feedback-list div {
+  align-items: center;
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.step-feedback-list div.on-track {
+  border-color: #0f766e;
+}
+
+.step-feedback-list div.needs-work {
+  border-color: #be123c;
+}
+
+.step-feedback-list span {
+  color: #49534f;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .prerequisite-list {
@@ -640,5 +756,18 @@ button:disabled {
 
   .hero-panel h2 {
     font-size: 1.5rem;
+  }
+
+  .work-step-row {
+    grid-template-columns: 1fr;
+  }
+
+  .work-step-number {
+    height: 28px;
+    width: 28px;
+  }
+
+  .work-step-feedback {
+    grid-column: 1;
   }
 }

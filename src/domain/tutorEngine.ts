@@ -133,6 +133,7 @@ export type ProblemProgress = {
   problemId: string
   status: ProblemStatus
   response: string
+  workSteps: string[]
   score: number
   hintsUsed: number
   guideStepsUsed: number
@@ -155,6 +156,7 @@ export type Attempt = {
   problemId: string
   conceptId: ConceptId
   response: string
+  workSteps: string[]
   score: number
   feedback: string
   hintsUsed: number
@@ -224,6 +226,28 @@ export type GuidedSolution = {
   revealedSteps: GuidedSolutionStep[]
   nextStep?: GuidedSolutionStep
   completed: boolean
+}
+
+export type WorkStepStatus = 'empty' | 'on-track' | 'needs-work'
+
+export type WorkStepFeedback = {
+  index: number
+  response: string
+  expected: string
+  status: WorkStepStatus
+  detail: string
+  nextAction: string
+}
+
+export type WorkStepReport = {
+  problemId: string
+  headline: string
+  detail: string
+  nextAction: string
+  answered: number
+  onTrack: number
+  total: number
+  feedback: WorkStepFeedback[]
 }
 
 export const concepts: Concept[] = [
@@ -2255,6 +2279,149 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
   }
 }
 
+export const getWorkStepTargets = (problem: Problem) =>
+  problem.solutionSteps.length ? problem.solutionSteps : [problem.deeperHint]
+
+const stopWords = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'gives',
+  'in',
+  'is',
+  'it',
+  'of',
+  'on',
+  'or',
+  'so',
+  'the',
+  'then',
+  'to',
+  'use',
+  'with',
+])
+
+const meaningfulTokens = (value: string) =>
+  normalize(value)
+    .split(/[^a-z0-9/.-]+/)
+    .filter((token) => token.length > 1 && !stopWords.has(token))
+
+const evaluateWorkStep = (
+  problem: Problem,
+  response: string,
+  expected: string,
+  index: number,
+): WorkStepFeedback => {
+  const normalizedResponse = normalize(response)
+
+  if (!normalizedResponse) {
+    return {
+      index,
+      response,
+      expected,
+      status: 'empty',
+      detail: `Step ${index + 1} is waiting for evidence.`,
+      nextAction: expected,
+    }
+  }
+
+  const responseCompact = compact(response)
+  const expectedCompact = compact(expected)
+  const responseTokens = new Set(meaningfulTokens(response))
+  const expectedTokens = meaningfulTokens(expected)
+  const overlap = expectedTokens.filter((token) => responseTokens.has(token)).length
+  const requiredOverlap = Math.min(
+    3,
+    Math.max(1, Math.ceil(Math.max(expectedTokens.length, 1) * 0.35)),
+  )
+  const compactMatch =
+    responseCompact.length >= 4 &&
+    (expectedCompact.includes(responseCompact) || responseCompact.includes(expectedCompact))
+
+  if (compactMatch || overlap >= requiredOverlap) {
+    return {
+      index,
+      response,
+      expected,
+      status: 'on-track',
+      detail: `Step ${index + 1} lines up with the solution path.`,
+      nextAction:
+        index === getWorkStepTargets(problem).length - 1
+          ? 'Use this work to write the final answer.'
+          : getWorkStepTargets(problem)[index + 1],
+    }
+  }
+
+  return {
+    index,
+    response,
+    expected,
+    status: 'needs-work',
+    detail: `Step ${index + 1} has work, but it does not match the expected move yet.`,
+    nextAction: expected,
+  }
+}
+
+export const evaluateWorkSteps = (
+  problem: Problem,
+  workSteps: string[] = [],
+): WorkStepReport => {
+  const targets = getWorkStepTargets(problem)
+  const feedback = targets.map((target, index) =>
+    evaluateWorkStep(problem, workSteps[index] ?? '', target, index),
+  )
+  const answered = feedback.filter((step) => step.response.trim()).length
+  const onTrack = feedback.filter((step) => step.status === 'on-track').length
+  const firstNeedsWork = feedback.find((step) => step.status === 'needs-work')
+  const firstEmpty = feedback.find((step) => step.status === 'empty')
+
+  if (firstNeedsWork) {
+    return {
+      problemId: problem.id,
+      headline: `Repair step ${firstNeedsWork.index + 1}`,
+      detail: firstNeedsWork.detail,
+      nextAction: firstNeedsWork.nextAction,
+      answered,
+      onTrack,
+      total: targets.length,
+      feedback,
+    }
+  }
+
+  if (!firstEmpty) {
+    return {
+      problemId: problem.id,
+      headline: 'Work path is coherent',
+      detail: 'Each recorded step is aligned with the verified solution path.',
+      nextAction: 'Write the final answer and submit when ready.',
+      answered,
+      onTrack,
+      total: targets.length,
+      feedback,
+    }
+  }
+
+  return {
+    problemId: problem.id,
+    headline: answered ? `Continue step ${firstEmpty.index + 1}` : 'Start the work path',
+    detail: answered
+      ? `${onTrack}/${targets.length} steps are currently on track.`
+      : 'A first setup line gives the tutor something specific to check.',
+    nextAction: firstEmpty.nextAction,
+    answered,
+    onTrack,
+    total: targets.length,
+    feedback,
+  }
+}
+
 export const createProblemSet = (
   profile: LearnerProfile,
   mode: SetMode = 'adaptive',
@@ -2292,6 +2459,7 @@ export const createProblemSet = (
           problemId: problem.id,
           status: 'ready' as ProblemStatus,
           response: '',
+          workSteps: [],
           score: 0,
           hintsUsed: 0,
           guideStepsUsed: 0,
@@ -2524,10 +2692,12 @@ export const submitResponse = (
   setId: string,
   problemId: string,
   response: string,
-  support: { hintsUsed?: number; guideStepsUsed?: number } = {},
+  support: { hintsUsed?: number; guideStepsUsed?: number; workSteps?: string[] } = {},
 ): LearnerProfile => {
   const problem = getProblem(problemId)
   const feedback = evaluateResponse(problem, response)
+  const workSteps = (support.workSteps ?? []).map((step) => step.trim())
+  const stepReport = evaluateWorkSteps(problem, workSteps)
   const hintsUsed = support.hintsUsed ?? 0
   const guideStepsUsed = support.guideStepsUsed ?? 0
   const supportPenalty =
@@ -2542,11 +2712,12 @@ export const submitResponse = (
     problemId,
     conceptId: problem.conceptId,
     response,
+    workSteps,
     score,
     feedback:
       guideStepsUsed > 0
-        ? `${feedback.detail} Guided support used: ${guideStepsUsed} step${guideStepsUsed === 1 ? '' : 's'}.`
-        : feedback.detail,
+        ? `${feedback.detail} Guided support used: ${guideStepsUsed} step${guideStepsUsed === 1 ? '' : 's'}. Work path: ${stepReport.onTrack}/${stepReport.total} steps on track.`
+        : `${feedback.detail} Work path: ${stepReport.onTrack}/${stepReport.total} steps on track.`,
     hintsUsed,
     guideStepsUsed,
     mistakeLabel: feedback.mistake?.label,
@@ -2571,13 +2742,14 @@ export const submitResponse = (
     const progress = {
       ...set.progress,
       [problemId]: {
-        ...set.progress[problemId],
-        problemId,
-        status: 'answered' as ProblemStatus,
-        response,
-        score,
-        hintsUsed,
-        guideStepsUsed,
+          ...set.progress[problemId],
+          problemId,
+          status: 'answered' as ProblemStatus,
+          response,
+          workSteps,
+          score,
+          hintsUsed,
+          guideStepsUsed,
         submittedAt: createdAt,
       },
     }

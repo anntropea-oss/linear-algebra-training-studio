@@ -34,6 +34,7 @@ const normalizeProfile = (profile: LearnerProfile): LearnerProfile => {
             problemId,
             {
               ...normalized,
+              workSteps: normalized.workSteps ?? [],
               hintsUsed: normalized.hintsUsed ?? 0,
               guideStepsUsed: normalized.guideStepsUsed ?? 0,
             },
@@ -43,6 +44,7 @@ const normalizeProfile = (profile: LearnerProfile): LearnerProfile => {
     })),
     attempts: profile.attempts.map((attempt) => ({
       ...attempt,
+      workSteps: attempt.workSteps ?? [],
       hintsUsed: attempt.hintsUsed ?? 0,
       guideStepsUsed: attempt.guideStepsUsed ?? 0,
     })),
