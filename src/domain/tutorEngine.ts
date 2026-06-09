@@ -1,3 +1,6 @@
+import { evaluateMathAnswer } from './mathAnswer.js'
+import type { MathAnswerSpec } from './mathAnswer.js'
+
 export type ConceptId =
   | 'vectors'
   | 'span'
@@ -116,6 +119,7 @@ export type Problem = {
   prompt: string
   answerType: 'number' | 'vector' | 'choice' | 'explanation'
   accepted: string[]
+  expectedAnswer?: MathAnswerSpec
   mustInclude?: string[]
   hint: string
   deeperHint: string
@@ -1693,6 +1697,7 @@ export const problemBank: Problem[] = [
     prompt: 'Find a and b so that a(1, 2) + b(3, 1) = (7, 8).',
     answerType: 'vector',
     accepted: ['a=17/5,b=6/5', '17/5,6/5', 'a = 3.4, b = 1.2'],
+    expectedAnswer: { kind: 'vector', labels: ['a', 'b'], values: [17 / 5, 6 / 5] },
     hint: 'Turn the vector equation into x- and y-coordinate equations.',
     deeperHint: 'Solve a + 3b = 7 and 2a + b = 8.',
     solutionSteps: [
@@ -1711,6 +1716,7 @@ export const problemBank: Problem[] = [
     prompt: 'Write (4, -2, 5) using the standard basis e1, e2, e3.',
     answerType: 'explanation',
     accepted: ['4e1-2e2+5e3', '4 e1 - 2 e2 + 5 e3', '4, -2, 5'],
+    expectedAnswer: { kind: 'vector', values: [4, -2, 5] },
     mustInclude: ['4', '-2', '5'],
     hint: 'Each standard basis vector carries one coordinate.',
     deeperHint: 'e1 contributes the first coordinate, e2 the second, e3 the third.',
@@ -1761,6 +1767,7 @@ export const problemBank: Problem[] = [
     prompt: 'Solve x + y = 6 and x - y = 2.',
     answerType: 'vector',
     accepted: ['x=4,y=2', '4,2', '(4,2)', 'x = 4 and y = 2'],
+    expectedAnswer: { kind: 'vector', labels: ['x', 'y'], values: [4, 2] },
     mustInclude: ['4', '2'],
     hint: 'Add the equations to eliminate y.',
     deeperHint: 'Adding gives 2x = 8.',
@@ -1807,6 +1814,7 @@ export const problemBank: Problem[] = [
     prompt: 'Row reduce [[1, 2, 5], [0, 1, 1]]. What are x and y?',
     answerType: 'vector',
     accepted: ['x=3,y=1', '3,1', '(3,1)', 'x = 3 and y = 1'],
+    expectedAnswer: { kind: 'vector', labels: ['x', 'y'], values: [3, 1] },
     mustInclude: ['3', '1'],
     hint: 'Use the second row to clear the 2 above the y pivot.',
     deeperHint: 'R1 <- R1 - 2R2.',
@@ -1839,6 +1847,13 @@ export const problemBank: Problem[] = [
     prompt: 'Find the matrix that sends e1 to (1, 2) and e2 to (3, 4).',
     answerType: 'explanation',
     accepted: ['[[1,3],[2,4]]', '1 3 2 4', 'columns are (1,2) and (3,4)'],
+    expectedAnswer: {
+      kind: 'matrix',
+      values: [
+        [1, 3],
+        [2, 4],
+      ],
+    },
     mustInclude: ['1', '2', '3', '4'],
     hint: 'Images of basis vectors become columns.',
     deeperHint: 'The first column is T(e1); the second column is T(e2).',
@@ -1881,6 +1896,7 @@ export const problemBank: Problem[] = [
     prompt: 'Are (2, -1, 3) and (1, 2, 0) orthogonal?',
     answerType: 'choice',
     accepted: ['yes', 'orthogonal', 'dot product is 0', '0'],
+    expectedAnswer: { kind: 'number', value: 0 },
     mustInclude: ['0'],
     hint: 'Compute the dot product.',
     deeperHint: '2(1) + (-1)(2) + 3(0).',
@@ -1895,6 +1911,7 @@ export const problemBank: Problem[] = [
     prompt: 'Project (2, 3) onto the span of (1, 1).',
     answerType: 'vector',
     accepted: ['(5/2,5/2)', '5/2,5/2', '2.5,2.5'],
+    expectedAnswer: { kind: 'vector', values: [5 / 2, 5 / 2] },
     mustInclude: ['5'],
     hint: 'Use (v dot u)/(u dot u) times u.',
     deeperHint: 'v dot u = 5 and u dot u = 2.',
@@ -1909,6 +1926,7 @@ export const problemBank: Problem[] = [
     prompt: 'If Av = 5v for nonzero v, what is the eigenvalue?',
     answerType: 'number',
     accepted: ['5', 'lambda=5', 'eigenvalue is 5'],
+    expectedAnswer: { kind: 'number', value: 5 },
     mustInclude: ['5'],
     hint: 'Compare Av = 5v with Av = lambda v.',
     deeperHint: 'lambda is the scalar multiplying v.',
@@ -1937,6 +1955,7 @@ export const problemBank: Problem[] = [
     prompt: 'Compute det([[3, 2], [1, 4]]).',
     answerType: 'number',
     accepted: ['10', 'det=10', 'determinant is 10'],
+    expectedAnswer: { kind: 'number', value: 10 },
     mustInclude: ['10'],
     hint: 'For [[a, b], [c, d]], use ad - bc.',
     deeperHint: 'Compute 3(4) - 2(1).',
@@ -1979,6 +1998,7 @@ export const problemBank: Problem[] = [
     prompt: 'A 4 by 7 matrix has rank 5. What is its nullity?',
     answerType: 'number',
     accepted: ['2', 'nullity=2', 'nullity is 2'],
+    expectedAnswer: { kind: 'number', value: 2 },
     mustInclude: ['2'],
     hint: 'Use rank + nullity = number of columns.',
     deeperHint: '5 + nullity = 7.',
@@ -2006,6 +2026,7 @@ export const problemBank: Problem[] = [
     prompt: 'For basis B = {(2, 0), (0, 3)}, find the B-coordinates of (6, 12).',
     answerType: 'vector',
     accepted: ['(3,4)', '3,4', '[3,4]', '3 and 4'],
+    expectedAnswer: { kind: 'vector', values: [3, 4] },
     mustInclude: ['3', '4'],
     hint: 'Find weights a and b so a(2,0) + b(0,3) = (6,12).',
     deeperHint: 'Solve 2a = 6 and 3b = 12.',
@@ -2162,7 +2183,10 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
   const matchedMistake = problem.mistakePatterns.find((mistake) =>
     mistake.triggers.some((trigger) => normalized.includes(normalize(trigger))),
   )
-  const acceptedMatch = problem.accepted.some((accepted) => {
+  const mathEvaluation = problem.expectedAnswer
+    ? evaluateMathAnswer(response, problem.expectedAnswer)
+    : undefined
+  const acceptedTextMatch = problem.accepted.some((accepted) => {
     const normalizedAccepted = normalize(accepted)
     return (
       normalized.includes(normalizedAccepted) ||
@@ -2170,15 +2194,21 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
       compact(accepted).includes(compacted)
     )
   })
+  const hasMustIncludeTokens = Boolean(problem.mustInclude?.length)
   const mustIncludeMatch =
-    !problem.mustInclude ||
-    problem.mustInclude.every((token) => compacted.includes(compact(token)))
+    !hasMustIncludeTokens ||
+    (problem.mustInclude?.every((token) => compacted.includes(compact(token))) ?? true)
+  const acceptedMatch =
+    mathEvaluation?.status === 'correct' || (acceptedTextMatch && mustIncludeMatch)
 
-  if (acceptedMatch && mustIncludeMatch) {
+  if (acceptedMatch) {
     return {
       tone: 'correct',
       headline: 'That matches the target idea',
-      detail: problem.checksFor,
+      detail:
+        mathEvaluation?.status === 'correct'
+          ? `${problem.checksFor} ${mathEvaluation.detail}`
+          : problem.checksFor,
       nextAction: 'Submit this, then move to the next problem.',
       score: 5,
       matchedAccepted: true,
@@ -2197,11 +2227,18 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
     }
   }
 
-  if (normalized.length > 18 || mustIncludeMatch) {
+  if (
+    mathEvaluation?.status === 'partial' ||
+    normalized.length > 18 ||
+    (hasMustIncludeTokens && mustIncludeMatch)
+  ) {
     return {
       tone: 'working',
       headline: 'Part of this is useful',
-      detail: 'I can see relevant structure, but the answer is not complete yet.',
+      detail:
+        mathEvaluation?.status === 'partial'
+          ? mathEvaluation.detail
+          : 'I can see relevant structure, but the answer is not complete yet.',
       nextAction: problem.deeperHint,
       score: 3,
       matchedAccepted: false,

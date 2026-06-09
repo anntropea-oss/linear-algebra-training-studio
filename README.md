@@ -39,12 +39,13 @@ npm run build:pages
 
 ## Next Engineering Step
 
-Add math-aware answer parsing and richer problem authoring:
+Continue Phase 2 math-aware checking and richer problem authoring:
 
 - diagnostic-driven prerequisite repair
 - expanded starter problems for every university-level concept
-- vector and matrix equivalence checks
+- more vector, matrix, and equation equivalence checks
 - step-based submissions
+- concept-specific rubrics
 - larger verified problem bank
 - adaptive difficulty within each active set
 - optional AI explanations grounded in verified solutions
