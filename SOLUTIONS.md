@@ -437,3 +437,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: Added a regression test proving targeted repairs are selected before legacy untargeted repairs.
+
+## [2026-06-08 21:18] No Automated PR Checks Reported For Misconception Routing PR
+- Problem: GitHub reported no automated checks for PR #15, so validation for the misconception-routing branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, diff, and browser verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 15` returned `no checks reported on the 'codex/phase-2-misconception-routing' branch`.
