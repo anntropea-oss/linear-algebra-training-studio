@@ -517,3 +517,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 17` returned `no checks reported on the 'codex/fix-readme-planning-links' branch`.
+
+## [2026-06-09 09:54] Link Target Check Clobbered Shell Path
+- Problem: A final shell loop for checking GitHub link targets failed with `zsh:1: command not found: curl`.
+- Root Cause: The loop variable was named `path`, which is a special zsh variable tied to command lookup paths.
+- Solution: Reran the link-target check with a non-special loop variable name.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The corrected loop checked all README planning-document target URLs successfully.
