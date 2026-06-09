@@ -445,3 +445,51 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 15` returned `no checks reported on the 'codex/phase-2-misconception-routing' branch`.
+
+## [2026-06-09 09:27] Misconception Taxonomy Was Too Coarse
+- Problem: Targeted repairs could only distinguish a small set of broad misconceptions, so different linear algebra errors were routed through generic labels and generic repair advice.
+- Root Cause: The shared mistake catalog only covered sign slips, coordinate mix-ups, span counting, row-operation errors, eigenvector scaling, and setup mismatch.
+- Solution: Added concept-specific misconception patterns for vector-equation translation, dependence relations, pivot/free-variable confusion, basis images as columns, zero-vector subspace checks, determinant order, singularity, null-space free variables, rank-nullity dimension, projection denominators, residual orthogonality, basis-coordinate weights, diagonalization cancellation, eigenvector nonzero rules, and proof closure gaps.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/CURRICULUM_SKILL_MAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms concept-specific final-answer and work-step misconception detection.
+
+## [2026-06-09 09:27] Repair Variants Would Pollute Ordinary Practice
+- Problem: Adding misconception-specific repair problems as normal problems would have made adaptive lesson sets show repair drills before a learner had demonstrated the relevant misconception.
+- Root Cause: The problem model had no way to distinguish ordinary practice from repair-only variants.
+- Solution: Added a `repairOnly` flag, excluded repair-only problems from normal concept lookup, and made targeted repair sets pull matching repair-only variants first.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/App.tsx`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/CURRICULUM_SKILL_MAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms ordinary adaptive sets exclude repair-only variants and targeted repair sets prioritize the matching repair drill.
+
+## [2026-06-09 09:27] Generic Coordinate Pattern Shadowed Matrix Column Error
+- Problem: A response that put basis-vector images in rows was classified as a generic coordinate mix-up instead of the more precise basis-images-as-columns misconception.
+- Root Cause: The matrix transformation problem still referenced only the generic coordinate pattern, while the specific pattern had been attached to the wrong matrix problem during implementation.
+- Solution: Moved the basis-images-as-columns pattern to the matrix-construction problem and left the diagonal scaling problem with the generic coordinate pattern.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms `mat-2` responses with row placement now return `basis-images-as-columns`.
+
+## [2026-06-09 09:27] Repair Variant Ordering Preferred Prerequisites
+- Problem: A systems sign-slip repair could show a prerequisite vector-equation drill before the same-concept systems sign repair.
+- Root Cause: Focused repair variants were filtered across the active concept and prerequisites but kept problem-bank order instead of prioritizing the active repair concept.
+- Solution: Sorted focused repair variants and focused core repair problems so same-concept items appear before prerequisite items.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms the sign-slip repair set starts with `sys-repair-sign`.
+
+## [2026-06-09 09:27] Numeric Text Fallback Accepted Wrong Signed Answers
+- Problem: The determinant response `det = 2 - 12 = -10` could be marked correct for an expected answer of `10` because loose text matching found `10` inside `-10`.
+- Root Cause: Numeric problems used both structured numeric evaluation and substring-based accepted-answer fallback.
+- Solution: Made structured numeric evaluation authoritative for number rubrics, while preserving text fallback for non-number rubrics.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms the wrong signed determinant answer is classified as `determinant-order-error` instead of correct.
+
+## [2026-06-09 09:29] In-App Browser Surface Was Unavailable
+- Problem: Browser verification for the repair-variant UI path could not run through the in-app browser because the browser plugin reported no available browser surfaces.
+- Root Cause: Unknown; `agent.browsers.list()` returned an empty list during verification.
+- Solution: Logged the verification limitation and used local automated tests, production build, lint, diff checks, and an HTTP check against the dev server as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `curl -I http://127.0.0.1:5173/` returned HTTP 200, and `npm test`, `npm run build`, `npm run lint`, and `git diff --check` passed before the log entry.

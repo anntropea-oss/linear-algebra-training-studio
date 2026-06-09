@@ -85,4 +85,4 @@ Each concept should eventually include:
 - transfer
 - challenge
 
-The current problem bank now has at least one verified starter problem per concept. It still needs many more variants, transfer problems, and misconception-specific repairs.
+The current problem bank now has at least one verified starter problem per concept plus repair-only variants for several high-value misconception patterns. It still needs many more variants, transfer problems, and instructor-reviewed repair paths for advanced topics.

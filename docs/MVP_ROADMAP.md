@@ -27,6 +27,8 @@ Status: started
 - Capture step-by-step work and save it with attempts.
 - Give live step-level feedback against verified solution paths.
 - Tag misconception patterns from work steps and route targeted repair sets.
+- Use a broader misconception taxonomy across core linear algebra concepts.
+- Serve repair-only problem variants before ordinary practice in focused repair sets.
 - Score using concept-specific rubrics.
 
 ## Phase 2A: Stronger Adaptivity
@@ -40,7 +42,7 @@ Status: started
 
 - Add multiple problems per concept.
 - Add variants by difficulty.
-- Add repair sets for every misconception.
+- Add more repair variants for every misconception.
 - Add mixed review sets.
 - Add application problems.
 - Add transfer and proof problems for advanced topics.

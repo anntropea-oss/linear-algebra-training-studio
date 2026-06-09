@@ -562,6 +562,7 @@ const App = () => {
                   {activeSet.repairFocus ? (
                     <span>Repair: {activeSet.repairFocus.label}</span>
                   ) : null}
+                  {activeProblem.repairOnly ? <span>Repair variant</span> : null}
                   {guideLevel > 0 ? (
                     <span>
                       AI guide {guideLevel}/{guidedSolution.steps.length}

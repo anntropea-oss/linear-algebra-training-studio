@@ -25,6 +25,7 @@ npm run build:pages
 - Get live coaching as you type.
 - Enter step-by-step work and get step-level feedback.
 - Tag misconception patterns and create targeted repair sets.
+- Practice repair-only variants matched to the active misconception.
 - Ask for AI-style guided steps when you do not know how to start.
 - Submit attempts and update mastery/confidence.
 - See concept progress, recent attempts, and a repair queue.
@@ -47,7 +48,7 @@ Continue Phase 2 math-aware checking and richer problem authoring:
 - expanded starter problems for every university-level concept
 - more vector, matrix, and equation equivalence checks
 - concept-specific rubrics
-- broader misconception taxonomy and repair variants
 - larger verified problem bank
+- more repair variants for advanced misconceptions
 - adaptive difficulty within each active set
 - optional AI explanations grounded in verified solutions

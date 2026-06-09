@@ -116,6 +116,7 @@ export type MistakePattern = {
 export type Problem = {
   id: string
   conceptId: ConceptId
+  repairOnly?: boolean
   prompt: string
   answerType: 'number' | 'vector' | 'choice' | 'explanation'
   accepted: string[]
@@ -1707,12 +1708,26 @@ const commonMistakes = {
     feedback: 'This looks like a coordinate or row-column mix-up.',
     repair: 'Name what each coordinate represents before calculating.',
   },
+  vectorEquationTranslation: {
+    id: 'vector-equation-translation',
+    label: 'Vector equation not split by coordinates',
+    triggers: ['one equation', 'combine coordinates', 'add coordinates', 'single number'],
+    feedback: 'A vector equation is really one scalar equation per coordinate.',
+    repair: 'Write the coordinate equations first, then solve the scalar system.',
+  },
   spanCount: {
     id: 'span-counting',
     label: 'Counting vectors instead of directions',
     triggers: ['two vectors so yes', 'three vectors', 'enough vectors', 'number of vectors'],
     feedback: 'Span is about independent directions, not just how many vectors you have.',
     repair: 'Check whether one vector is a scalar multiple or combination of the others.',
+  },
+  dependenceRelation: {
+    id: 'dependence-relation-missed',
+    label: 'Missing the dependence relation',
+    triggers: ['not multiples', 'looks different', 'independent because different'],
+    feedback: 'Linear dependence can come from one vector being a combination of several others.',
+    repair: 'Try to write one vector as a combination of the earlier vectors.',
   },
   rowOperation: {
     id: 'invalid-row-operation',
@@ -1721,12 +1736,103 @@ const commonMistakes = {
     feedback: 'That operation changes the problem. Row reduction only allows row operations.',
     repair: 'Use row swap, row scaling, or row replacement only.',
   },
+  pivotFreeVariable: {
+    id: 'pivot-free-variable-confusion',
+    label: 'Pivot/free-variable confusion',
+    triggers: ['pivot is free', 'pivot column free', 'no pivot means fixed', 'free pivot'],
+    feedback: 'Pivot columns identify leading variables; non-pivot columns identify free variables.',
+    repair: 'Circle pivot columns first, then name every non-pivot variable as free.',
+  },
+  matrixColumnImages: {
+    id: 'basis-images-as-columns',
+    label: 'Basis images belong in columns',
+    triggers: ['rows are images', 'put images in rows', 'e1 row', 'e2 row', 'as rows'],
+    feedback: 'The matrix columns are the images of the standard basis vectors.',
+    repair: 'Place T(e1) as column 1 and T(e2) as column 2 before reading entries.',
+  },
+  zeroVectorTest: {
+    id: 'zero-vector-test-missed',
+    label: 'Zero-vector test missed',
+    triggers: ['does not need zero', 'nonzero only', 'passes through one', 'zero not required'],
+    feedback: 'Every subspace must contain the zero vector before closure checks even matter.',
+    repair: 'Substitute the zero vector into the set definition first.',
+  },
+  determinantOrder: {
+    id: 'determinant-order-error',
+    label: '2 by 2 determinant order error',
+    triggers: ['bc - ad', 'cb - ad', 'ad + bc', '-10', '2 - 12'],
+    feedback: 'For [[a, b], [c, d]], the determinant is ad - bc.',
+    repair: 'Label a, b, c, d, then compute ad and bc before subtracting.',
+  },
+  singularInvertible: {
+    id: 'singular-invertible-confusion',
+    label: 'Singular means not invertible',
+    triggers: ['det zero inverse', 'zero determinant invertible', 'can invert', 'has inverse'],
+    feedback: 'A zero determinant means at least one direction collapses, so no inverse exists.',
+    repair: 'Connect det(A) = 0 with singular, non-invertible, and no unique inverse.',
+  },
+  nullSpaceFreeVariable: {
+    id: 'nullspace-free-variable-missed',
+    label: 'Null space free variable missed',
+    triggers: ['only zero solution', 'x2 is zero', 'no free variable', 'empty null space'],
+    feedback: 'A missing pivot in Ax = 0 creates a free variable and a whole direction in the null space.',
+    repair: 'Solve Ax = 0 and express the pivot variable in terms of the free variable.',
+  },
+  rankNullityDomain: {
+    id: 'rank-nullity-domain',
+    label: 'Rank-nullity uses the number of columns',
+    triggers: ['rows', 'number of rows', '4 - 5', 'rank plus nullity equals rows'],
+    feedback: 'Rank plus nullity equals the input dimension, which is the number of columns.',
+    repair: 'Identify the matrix size m by n, then use rank + nullity = n.',
+  },
+  projectionDenominator: {
+    id: 'projection-denominator-missed',
+    label: 'Projection denominator missing',
+    triggers: ['forgot denominator', 'v dot u times u', '5(1,1)', 'divide by length'],
+    feedback: 'A projection needs the scale factor (v dot u)/(u dot u), not just v dot u.',
+    repair: 'Compute both dot products before multiplying by the direction vector.',
+  },
+  residualOrthogonal: {
+    id: 'residual-orthogonality-confusion',
+    label: 'Residual orthogonality confusion',
+    triggers: ['residual in column space', 'parallel to columns', 'same direction as columns'],
+    feedback: 'At the least-squares solution, the residual is orthogonal to the column space.',
+    repair: 'Draw b as projection plus residual, then use A^T r = 0.',
+  },
+  basisCoordinateWeights: {
+    id: 'basis-coordinate-weights',
+    label: 'Basis coordinates are weights',
+    triggers: ['same coordinates', 'standard coordinates', 'use 6 12', 'coordinates stay'],
+    feedback: 'Coordinates in a new basis are the weights on the basis vectors.',
+    repair: 'Set a linear combination of basis vectors equal to the original vector.',
+  },
+  diagonalCancellation: {
+    id: 'diagonalization-cancellation-error',
+    label: 'Diagonalization cancellation error',
+    triggers: ['p cubed', 'p^3', 'd only', 'p inverse d p', 'wrong order'],
+    feedback: 'The middle P inverse P pairs cancel, but the outside P and P inverse remain.',
+    repair: 'Write two copies of PDP inverse and cancel only adjacent P inverse P pairs.',
+  },
   eigenScale: {
     id: 'eigen-unchanged',
     label: 'Eigenvectors are scaled, not frozen',
     triggers: ['unchanged', 'same vector', 'does not move'],
     feedback: 'An eigenvector can stretch, shrink, or flip. It only stays on its line.',
     repair: 'Use Av = lambda v and ask whether the output is a scalar multiple of v.',
+  },
+  eigenNonzero: {
+    id: 'eigenvector-zero-confusion',
+    label: 'Eigenvectors must be nonzero',
+    triggers: ['zero vector eigenvector', 'zero can be eigenvector', 'v can be zero'],
+    feedback: 'The zero vector is excluded because A0 = lambda 0 for every scalar.',
+    repair: 'State the definition with v nonzero before checking Av = lambda v.',
+  },
+  proofClosure: {
+    id: 'proof-closure-gap',
+    label: 'Proof missing a closure check',
+    triggers: ['examples are enough', 'one example proves', 'only zero', 'only addition'],
+    feedback: 'A subspace proof needs the zero vector and both closure properties.',
+    repair: 'List the definition, then check zero, addition closure, and scalar closure separately.',
   },
   setupMismatch: {
     id: 'setup-mismatch',
@@ -1754,7 +1860,11 @@ export const problemBank: Problem[] = [
       'So -5a = -17, a = 17/5, and b = 6/5.',
     ],
     checksFor: 'Translates a linear combination into scalar equations.',
-    mistakePatterns: [commonMistakes.sign, commonMistakes.coordinate],
+    mistakePatterns: [
+      commonMistakes.vectorEquationTranslation,
+      commonMistakes.sign,
+      commonMistakes.coordinate,
+    ],
     difficulty: 1,
   },
   {
@@ -1787,7 +1897,7 @@ export const problemBank: Problem[] = [
       'They span a line, not all of R2.',
     ],
     checksFor: 'Distinguishes number of vectors from number of directions.',
-    mistakePatterns: [commonMistakes.spanCount],
+    mistakePatterns: [commonMistakes.spanCount, commonMistakes.dependenceRelation],
     difficulty: 1,
   },
   {
@@ -1852,7 +1962,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'A non-pivot variable can be chosen freely.',
     solutionSteps: ['A column without a pivot corresponds to a free variable.'],
     checksFor: 'Connects pivots to free variables.',
-    mistakePatterns: [commonMistakes.rowOperation],
+    mistakePatterns: [commonMistakes.pivotFreeVariable, commonMistakes.rowOperation],
     difficulty: 1,
   },
   {
@@ -1906,7 +2016,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'The first column is T(e1); the second column is T(e2).',
     solutionSteps: ['Put T(e1) in column 1 and T(e2) in column 2.', 'The matrix is [[1, 3], [2, 4]].'],
     checksFor: 'Uses columns as images of basis vectors.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.matrixColumnImages, commonMistakes.coordinate],
     difficulty: 2,
   },
   {
@@ -1920,7 +2030,7 @@ export const problemBank: Problem[] = [
     deeperHint: '(0, 0) gives 0 + 0 = 0, not 1.',
     solutionSteps: ['Every subspace must contain the zero vector.', '(0, 0) is not in this set.', 'So it is not a subspace.'],
     checksFor: 'Uses zero vector as a fast subspace test.',
-    mistakePatterns: [commonMistakes.spanCount],
+    mistakePatterns: [commonMistakes.zeroVectorTest, commonMistakes.spanCount],
     difficulty: 1,
   },
   {
@@ -1934,7 +2044,7 @@ export const problemBank: Problem[] = [
     deeperHint: '(2, 4) = 2(1, 2).',
     solutionSteps: ['(2, 4) is redundant.', '(1, 2) and (0, 1) are independent.', 'One basis is {(1, 2), (0, 1)}.'],
     checksFor: 'Removes redundancy while preserving span.',
-    mistakePatterns: [commonMistakes.spanCount],
+    mistakePatterns: [commonMistakes.spanCount, commonMistakes.dependenceRelation],
     difficulty: 2,
   },
   {
@@ -1964,7 +2074,11 @@ export const problemBank: Problem[] = [
     deeperHint: 'v dot u = 5 and u dot u = 2.',
     solutionSteps: ['Projection = (5/2)(1, 1).', 'So the projection is (5/2, 5/2).'],
     checksFor: 'Applies projection formula and interprets closest vector.',
-    mistakePatterns: [commonMistakes.coordinate, commonMistakes.sign],
+    mistakePatterns: [
+      commonMistakes.projectionDenominator,
+      commonMistakes.coordinate,
+      commonMistakes.sign,
+    ],
     difficulty: 2,
   },
   {
@@ -1979,7 +2093,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'lambda is the scalar multiplying v.',
     solutionSteps: ['In Av = lambda v, the scalar lambda is the eigenvalue.', 'Here lambda = 5.'],
     checksFor: 'Recognizes eigenvalue notation.',
-    mistakePatterns: [commonMistakes.eigenScale],
+    mistakePatterns: [commonMistakes.eigenNonzero, commonMistakes.eigenScale],
     difficulty: 1,
   },
   {
@@ -2008,7 +2122,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'Compute 3(4) - 2(1).',
     solutionSteps: ['Use ad - bc.', '3(4) - 2(1) = 12 - 2.', 'The determinant is 10.'],
     checksFor: 'Computes a 2 by 2 determinant and interprets nonzero scaling.',
-    mistakePatterns: [commonMistakes.sign],
+    mistakePatterns: [commonMistakes.determinantOrder, commonMistakes.sign],
     difficulty: 1,
   },
   {
@@ -2022,7 +2136,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'A zero determinant means the transformation loses dimension.',
     solutionSteps: ['det(A) = 0 means A is singular.', 'A singular matrix has no inverse.', 'So A is not invertible.'],
     checksFor: 'Connects determinant zero to non-invertibility.',
-    mistakePatterns: [commonMistakes.spanCount],
+    mistakePatterns: [commonMistakes.singularInvertible, commonMistakes.spanCount],
     difficulty: 1,
   },
   {
@@ -2036,7 +2150,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'The equation is x1 = 0, while x2 is free.',
     solutionSteps: ['Ax = 0 gives x1 = 0.', 'x2 is free.', 'The null space is span{(0, 1)}.'],
     checksFor: 'Finds a null space from a simple matrix equation.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.nullSpaceFreeVariable, commonMistakes.coordinate],
     difficulty: 2,
   },
   {
@@ -2051,7 +2165,7 @@ export const problemBank: Problem[] = [
     deeperHint: '5 + nullity = 7.',
     solutionSteps: ['The matrix has 7 columns.', 'Use rank + nullity = 7.', '5 + nullity = 7, so nullity = 2.'],
     checksFor: 'Uses rank-nullity with the input dimension.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.rankNullityDomain, commonMistakes.coordinate],
     difficulty: 1,
   },
   {
@@ -2064,7 +2178,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'The residual is perpendicular to every column of A.',
     solutionSteps: ['The best approximation projects b onto Col(A).', 'The residual points from the projection to b.', 'That residual is orthogonal to Col(A), so A^T r = 0.'],
     checksFor: 'Connects least squares to orthogonal projection.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.residualOrthogonal, commonMistakes.coordinate],
     difficulty: 2,
   },
   {
@@ -2079,7 +2193,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'Solve 2a = 6 and 3b = 12.',
     solutionSteps: ['Set a(2, 0) + b(0, 3) = (6, 12).', '2a = 6, so a = 3.', '3b = 12, so b = 4. The B-coordinates are (3, 4).'],
     checksFor: 'Interprets coordinates as weights in a chosen basis.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.basisCoordinateWeights, commonMistakes.coordinate],
     difficulty: 1,
   },
   {
@@ -2093,7 +2207,7 @@ export const problemBank: Problem[] = [
     deeperHint: 'A^2 = P D^2 P inverse, so continue once more.',
     solutionSteps: ['A^3 = (P D P inverse)(P D P inverse)(P D P inverse).', 'Each P inverse P becomes I.', 'So A^3 = P D^3 P inverse.'],
     checksFor: 'Uses diagonalization to simplify matrix powers.',
-    mistakePatterns: [commonMistakes.coordinate],
+    mistakePatterns: [commonMistakes.diagonalCancellation, commonMistakes.coordinate],
     difficulty: 2,
   },
   {
@@ -2107,13 +2221,307 @@ export const problemBank: Problem[] = [
     deeperHint: 'You need zero plus two closure properties.',
     solutionSteps: ['Show the zero vector is in W.', 'Show if u and v are in W, then u + v is in W.', 'Show if c is a scalar and u is in W, then cu is in W.'],
     checksFor: 'Uses definitions to structure a proof.',
-    mistakePatterns: [commonMistakes.spanCount],
+    mistakePatterns: [commonMistakes.proofClosure, commonMistakes.spanCount],
+    difficulty: 1,
+  },
+  {
+    id: 'vec-repair-coordinate-equations',
+    conceptId: 'vectors',
+    repairOnly: true,
+    prompt: 'Repair drill: turn a(2, 1) + b(1, 3) = (7, 8) into scalar equations, then find a and b.',
+    answerType: 'vector',
+    accepted: ['a=13/5,b=9/5', '13/5,9/5', 'a = 2.6, b = 1.8'],
+    expectedAnswer: { kind: 'vector', labels: ['a', 'b'], values: [13 / 5, 9 / 5] },
+    mustInclude: ['13', '9'],
+    hint: 'Split the vector equation into one equation for each coordinate.',
+    deeperHint: 'Solve 2a + b = 7 and a + 3b = 8.',
+    solutionSteps: [
+      'Use coordinates: 2a + b = 7 and a + 3b = 8.',
+      'From 2a + b = 7, b = 7 - 2a.',
+      'Substitute: a + 3(7 - 2a) = 8.',
+      'So -5a = -13, a = 13/5, and b = 9/5.',
+    ],
+    checksFor: 'Repairs vector-equation translation into coordinate equations.',
+    mistakePatterns: [commonMistakes.vectorEquationTranslation, commonMistakes.sign],
+    difficulty: 1,
+  },
+  {
+    id: 'span-repair-dependence',
+    conceptId: 'span',
+    repairOnly: true,
+    prompt: 'Repair drill: are (1, 2, 0), (0, 1, 1), and (1, 3, 1) linearly independent?',
+    answerType: 'explanation',
+    accepted: ['no', 'dependent', 'third is sum', 'v3 = v1 + v2'],
+    mustInclude: ['dependent'],
+    hint: 'Compare the third vector to the first two.',
+    deeperHint: '(1, 2, 0) + (0, 1, 1) = (1, 3, 1).',
+    solutionSteps: [
+      'The third vector is the sum of the first two.',
+      'That gives a nontrivial dependence relation.',
+      'So the vectors are linearly dependent.',
+    ],
+    checksFor: 'Repairs dependence-relation recognition.',
+    mistakePatterns: [commonMistakes.dependenceRelation, commonMistakes.spanCount],
+    difficulty: 1,
+  },
+  {
+    id: 'sys-repair-sign',
+    conceptId: 'systems',
+    repairOnly: true,
+    prompt: 'Repair drill: solve x + y = 9 and x - y = 1.',
+    answerType: 'vector',
+    accepted: ['x=5,y=4', '5,4', '(5,4)', 'x = 5 and y = 4'],
+    expectedAnswer: { kind: 'vector', labels: ['x', 'y'], values: [5, 4] },
+    mustInclude: ['5', '4'],
+    hint: 'Add the equations so y cancels.',
+    deeperHint: 'Adding gives 2x = 10.',
+    solutionSteps: ['Add equations: 2x = 10.', 'x = 5.', 'Substitute: 5 + y = 9, so y = 4.'],
+    checksFor: 'Repairs elimination sign control.',
+    mistakePatterns: [commonMistakes.sign],
+    difficulty: 1,
+  },
+  {
+    id: 'row-repair-pivot-free',
+    conceptId: 'row-reduction',
+    repairOnly: true,
+    prompt: 'Repair drill: in RREF [[1, 0, 2], [0, 0, 0]], which variable is free?',
+    answerType: 'explanation',
+    accepted: ['x2', 'second variable', 'y', 'x_2 is free'],
+    mustInclude: ['free'],
+    hint: 'Look for the column without a pivot.',
+    deeperHint: 'Column 1 has a pivot. Column 2 does not.',
+    solutionSteps: [
+      'The first variable is a pivot variable.',
+      'The second variable has no pivot column.',
+      'So x2 is free.',
+    ],
+    checksFor: 'Repairs pivot and free-variable identification.',
+    mistakePatterns: [commonMistakes.pivotFreeVariable, commonMistakes.rowOperation],
+    difficulty: 1,
+  },
+  {
+    id: 'mat-repair-columns',
+    conceptId: 'matrix-transformations',
+    repairOnly: true,
+    prompt: 'Repair drill: T(e1) = (2, -1) and T(e2) = (0, 3). What matrix represents T?',
+    answerType: 'explanation',
+    accepted: ['[[2,0],[-1,3]]', '2 0 -1 3', 'columns are (2,-1) and (0,3)'],
+    expectedAnswer: {
+      kind: 'matrix',
+      values: [
+        [2, 0],
+        [-1, 3],
+      ],
+    },
+    mustInclude: ['2', '-1', '0', '3'],
+    hint: 'Images of standard basis vectors become columns.',
+    deeperHint: 'Put T(e1) in column 1 and T(e2) in column 2.',
+    solutionSteps: [
+      'Put T(e1) = (2, -1) in column 1.',
+      'Put T(e2) = (0, 3) in column 2.',
+      'The matrix is [[2, 0], [-1, 3]].',
+    ],
+    checksFor: 'Repairs the columns-as-basis-images rule.',
+    mistakePatterns: [commonMistakes.matrixColumnImages, commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'sub-repair-zero',
+    conceptId: 'subspaces',
+    repairOnly: true,
+    prompt: 'Repair drill: why is W = {(x, y): x + y = 2} not a subspace of R2?',
+    answerType: 'explanation',
+    accepted: ['zero vector not included', 'no zero vector', '(0,0) not in W', 'not a subspace'],
+    mustInclude: ['zero'],
+    hint: 'Test the zero vector before checking closure.',
+    deeperHint: '(0, 0) gives 0 + 0 = 0, not 2.',
+    solutionSteps: [
+      'Every subspace must contain the zero vector.',
+      '(0, 0) does not satisfy x + y = 2.',
+      'So W is not a subspace.',
+    ],
+    checksFor: 'Repairs the zero-vector subspace test.',
+    mistakePatterns: [commonMistakes.zeroVectorTest, commonMistakes.proofClosure],
+    difficulty: 1,
+  },
+  {
+    id: 'det-repair-order',
+    conceptId: 'determinants',
+    repairOnly: true,
+    prompt: 'Repair drill: compute det([[5, 1], [2, 3]]).',
+    answerType: 'number',
+    accepted: ['13', 'det=13', 'determinant is 13'],
+    expectedAnswer: { kind: 'number', value: 13 },
+    mustInclude: ['13'],
+    hint: 'For [[a, b], [c, d]], use ad - bc.',
+    deeperHint: 'Compute 5(3) - 1(2).',
+    solutionSteps: ['Use ad - bc.', '5(3) - 1(2) = 15 - 2.', 'The determinant is 13.'],
+    checksFor: 'Repairs 2 by 2 determinant order.',
+    mistakePatterns: [commonMistakes.determinantOrder, commonMistakes.sign],
+    difficulty: 1,
+  },
+  {
+    id: 'inv-repair-singular',
+    conceptId: 'inverses',
+    repairOnly: true,
+    prompt: 'Repair drill: a square matrix row-reduces to a row of zeros. Is it invertible?',
+    answerType: 'choice',
+    accepted: ['no', 'not invertible', 'singular', 'no inverse'],
+    mustInclude: ['no'],
+    hint: 'A zero row means a missing pivot.',
+    deeperHint: 'An invertible n by n matrix needs a pivot in every column.',
+    solutionSteps: [
+      'A zero row means the matrix is singular.',
+      'A singular square matrix does not have an inverse.',
+      'So it is not invertible.',
+    ],
+    checksFor: 'Repairs the singular versus invertible link.',
+    mistakePatterns: [commonMistakes.singularInvertible, commonMistakes.pivotFreeVariable],
+    difficulty: 1,
+  },
+  {
+    id: 'four-sub-repair-nullspace',
+    conceptId: 'fundamental-subspaces',
+    repairOnly: true,
+    prompt: 'Repair drill: for A = [[0, 1], [0, 0]], describe the null space.',
+    answerType: 'explanation',
+    accepted: ['x2=0', 'span of (1,0)', '(1,0)', 'multiples of (1,0)'],
+    mustInclude: ['1', '0'],
+    hint: 'Solve Ax = 0 and identify the free variable.',
+    deeperHint: 'The equation is x2 = 0, while x1 is free.',
+    solutionSteps: ['Ax = 0 gives x2 = 0.', 'x1 is free.', 'The null space is span{(1, 0)}.'],
+    checksFor: 'Repairs null-space free-variable reasoning.',
+    mistakePatterns: [commonMistakes.nullSpaceFreeVariable, commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'rank-repair-columns',
+    conceptId: 'rank-nullity',
+    repairOnly: true,
+    prompt: 'Repair drill: a 6 by 9 matrix has rank 4. What number goes in rank + nullity = __?',
+    answerType: 'number',
+    accepted: ['9', 'number of columns', 'n=9'],
+    expectedAnswer: { kind: 'number', value: 9 },
+    mustInclude: ['9'],
+    hint: 'Rank-nullity uses the input dimension.',
+    deeperHint: 'For an m by n matrix, rank + nullity = n.',
+    solutionSteps: [
+      'A 6 by 9 matrix has 9 columns.',
+      'Rank-nullity uses the number of columns.',
+      'So rank + nullity = 9.',
+    ],
+    checksFor: 'Repairs rank-nullity dimension accounting.',
+    mistakePatterns: [commonMistakes.rankNullityDomain],
+    difficulty: 1,
+  },
+  {
+    id: 'orth-repair-projection',
+    conceptId: 'orthogonality',
+    repairOnly: true,
+    prompt: 'Repair drill: project (3, 1) onto the span of (1, 1).',
+    answerType: 'vector',
+    accepted: ['(2,2)', '2,2', '[2,2]'],
+    expectedAnswer: { kind: 'vector', values: [2, 2] },
+    mustInclude: ['2'],
+    hint: 'Use (v dot u)/(u dot u) times u.',
+    deeperHint: 'v dot u = 4 and u dot u = 2.',
+    solutionSteps: ['Projection = (4/2)(1, 1).', 'So the projection is (2, 2).'],
+    checksFor: 'Repairs the projection denominator.',
+    mistakePatterns: [commonMistakes.projectionDenominator, commonMistakes.sign],
+    difficulty: 1,
+  },
+  {
+    id: 'least-repair-residual',
+    conceptId: 'least-squares',
+    repairOnly: true,
+    prompt: 'Repair drill: at a least-squares solution, where does the residual point relative to Col(A)?',
+    answerType: 'explanation',
+    accepted: ['orthogonal to column space', 'perpendicular to column space', 'A^T r = 0'],
+    mustInclude: ['orthogonal'],
+    hint: 'The residual is the part of b left after projection onto Col(A).',
+    deeperHint: 'The leftover error is perpendicular to every column direction.',
+    solutionSteps: [
+      'The least-squares fit projects b onto Col(A).',
+      'The residual is b minus that projection.',
+      'So the residual is orthogonal to Col(A).',
+    ],
+    checksFor: 'Repairs residual direction in least squares.',
+    mistakePatterns: [commonMistakes.residualOrthogonal, commonMistakes.projectionDenominator],
+    difficulty: 1,
+  },
+  {
+    id: 'basis-repair-weights',
+    conceptId: 'change-of-basis',
+    repairOnly: true,
+    prompt: 'Repair drill: for B = {(2, 0), (0, 5)}, find the B-coordinates of (6, 10).',
+    answerType: 'vector',
+    accepted: ['(3,2)', '3,2', '[3,2]', '3 and 2'],
+    expectedAnswer: { kind: 'vector', values: [3, 2] },
+    mustInclude: ['3', '2'],
+    hint: 'Find weights on the basis vectors.',
+    deeperHint: 'Solve a(2, 0) + b(0, 5) = (6, 10).',
+    solutionSteps: ['Set a(2, 0) + b(0, 5) = (6, 10).', '2a = 6, so a = 3.', '5b = 10, so b = 2.'],
+    checksFor: 'Repairs basis coordinates as weights.',
+    mistakePatterns: [commonMistakes.basisCoordinateWeights, commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'eig-repair-scale',
+    conceptId: 'eigenvalues',
+    repairOnly: true,
+    prompt: 'Repair drill: if Av = -3v for nonzero v, is v unchanged?',
+    answerType: 'explanation',
+    accepted: ['no', 'scaled by -3', 'flipped and scaled', 'same line'],
+    mustInclude: ['no'],
+    hint: 'Compare unchanged with multiplied by -3.',
+    deeperHint: 'The direction line is preserved, but the vector itself changes scale and sign.',
+    solutionSteps: [
+      'Av = -3v means the output is a scalar multiple of v.',
+      'The eigenvalue is -3.',
+      'The vector is not unchanged; it is flipped and scaled.',
+    ],
+    checksFor: 'Repairs eigenvector scaling language.',
+    mistakePatterns: [commonMistakes.eigenScale, commonMistakes.eigenNonzero],
+    difficulty: 1,
+  },
+  {
+    id: 'diag-repair-cancel',
+    conceptId: 'diagonalization',
+    repairOnly: true,
+    prompt: 'Repair drill: if A = P D P inverse, what is A^2?',
+    answerType: 'explanation',
+    accepted: ['P D^2 P inverse', 'PD^2P inverse', 'P D squared P inverse'],
+    mustInclude: ['p', 'd', '2'],
+    hint: 'Write two copies of P D P inverse next to each other.',
+    deeperHint: 'Only the middle P inverse P cancels.',
+    solutionSteps: ['A^2 = (P D P inverse)(P D P inverse).', 'The middle P inverse P becomes I.', 'So A^2 = P D^2 P inverse.'],
+    checksFor: 'Repairs diagonalization cancellation order.',
+    mistakePatterns: [commonMistakes.diagonalCancellation, commonMistakes.coordinate],
+    difficulty: 1,
+  },
+  {
+    id: 'proof-repair-scalar-closure',
+    conceptId: 'proof-techniques',
+    repairOnly: true,
+    prompt: 'Repair drill: a set contains zero and is closed under addition. What subspace check is still missing?',
+    answerType: 'explanation',
+    accepted: ['closed under scalar multiplication', 'scalar closure', 'scalar multiplication'],
+    mustInclude: ['scalar'],
+    hint: 'Subspace closure has two operations.',
+    deeperHint: 'You already have addition, so check multiplication by any scalar.',
+    solutionSteps: [
+      'The zero vector check is done.',
+      'Addition closure is done.',
+      'The missing check is closure under scalar multiplication.',
+    ],
+    checksFor: 'Repairs proof checklist completeness.',
+    mistakePatterns: [commonMistakes.proofClosure],
     difficulty: 1,
   },
 ]
 
 const byConcept = (conceptId: ConceptId) =>
-  problemBank.filter((problem) => problem.conceptId === conceptId)
+  problemBank.filter((problem) => problem.conceptId === conceptId && !problem.repairOnly)
 
 const normalize = (value: string) =>
   value
@@ -2245,8 +2653,10 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
   const mustIncludeMatch =
     !hasMustIncludeTokens ||
     (problem.mustInclude?.every((token) => compacted.includes(compact(token))) ?? true)
+  const allowsTextFallback = problem.expectedAnswer?.kind !== 'number'
   const acceptedMatch =
-    mathEvaluation?.status === 'correct' || (acceptedTextMatch && mustIncludeMatch)
+    mathEvaluation?.status === 'correct' ||
+    (allowsTextFallback && acceptedTextMatch && mustIncludeMatch)
 
   if (acceptedMatch) {
     return {
@@ -2369,12 +2779,39 @@ const classifyWorkStepMisconception = (
   }
 
   if (
+    problem.conceptId === 'vectors' &&
+    (normalizedResponse.includes('one equation') ||
+      normalizedResponse.includes('single equation') ||
+      normalizedResponse.includes('combine coordinates'))
+  ) {
+    return commonMistakes.vectorEquationTranslation
+  }
+
+  if (
     problem.conceptId === 'row-reduction' &&
     (normalizedResponse.includes('column operation') ||
       normalizedResponse.includes('add columns') ||
       normalizedResponse.includes('multiply column'))
   ) {
     return commonMistakes.rowOperation
+  }
+
+  if (
+    problem.conceptId === 'row-reduction' &&
+    (normalizedResponse.includes('pivot is free') ||
+      normalizedResponse.includes('pivot column free') ||
+      normalizedResponse.includes('no pivot means fixed'))
+  ) {
+    return commonMistakes.pivotFreeVariable
+  }
+
+  if (
+    problem.conceptId === 'matrix-transformations' &&
+    (normalizedResponse.includes('row') ||
+      normalizedResponse.includes('rows') ||
+      normalizedResponse.includes('images as rows'))
+  ) {
+    return commonMistakes.matrixColumnImages
   }
 
   if (
@@ -2387,12 +2824,122 @@ const classifyWorkStepMisconception = (
   }
 
   if (
+    ['span', 'subspaces'].includes(problem.conceptId) &&
+    (normalizedResponse.includes('looks different') ||
+      normalizedResponse.includes('not multiples') ||
+      normalizedResponse.includes('different so independent'))
+  ) {
+    return commonMistakes.dependenceRelation
+  }
+
+  if (
+    problem.conceptId === 'subspaces' &&
+    (normalizedResponse.includes('zero not required') ||
+      normalizedResponse.includes('does not need zero') ||
+      normalizedResponse.includes('nonzero only'))
+  ) {
+    return commonMistakes.zeroVectorTest
+  }
+
+  if (
+    problem.conceptId === 'determinants' &&
+    (normalizedResponse.includes('bc - ad') ||
+      normalizedResponse.includes('ad + bc') ||
+      normalizedResponse.includes('-10'))
+  ) {
+    return commonMistakes.determinantOrder
+  }
+
+  if (
+    problem.conceptId === 'inverses' &&
+    (normalizedResponse.includes('det zero inverse') ||
+      normalizedResponse.includes('zero determinant invertible') ||
+      normalizedResponse.includes('has inverse'))
+  ) {
+    return commonMistakes.singularInvertible
+  }
+
+  if (
+    problem.conceptId === 'fundamental-subspaces' &&
+    (normalizedResponse.includes('only zero solution') ||
+      normalizedResponse.includes('no free variable') ||
+      normalizedResponse.includes('empty null space'))
+  ) {
+    return commonMistakes.nullSpaceFreeVariable
+  }
+
+  if (
+    problem.conceptId === 'rank-nullity' &&
+    (normalizedResponse.includes('row') ||
+      normalizedResponse.includes('rows') ||
+      normalizedResponse.includes('4 - 5'))
+  ) {
+    return commonMistakes.rankNullityDomain
+  }
+
+  if (
+    problem.conceptId === 'orthogonality' &&
+    (normalizedResponse.includes('forgot denominator') ||
+      normalizedResponse.includes('v dot u times u') ||
+      normalizedResponse.includes('5(1,1)'))
+  ) {
+    return commonMistakes.projectionDenominator
+  }
+
+  if (
+    problem.conceptId === 'least-squares' &&
+    (normalizedResponse.includes('residual in column space') ||
+      normalizedResponse.includes('parallel to columns') ||
+      normalizedResponse.includes('same direction as columns'))
+  ) {
+    return commonMistakes.residualOrthogonal
+  }
+
+  if (
     problem.conceptId === 'eigenvalues' &&
     (normalizedResponse.includes('unchanged') ||
       normalizedResponse.includes('same vector') ||
       normalizedResponse.includes('does not move'))
   ) {
     return commonMistakes.eigenScale
+  }
+
+  if (
+    problem.conceptId === 'eigenvalues' &&
+    (normalizedResponse.includes('zero vector eigenvector') ||
+      normalizedResponse.includes('zero can be eigenvector') ||
+      normalizedResponse.includes('v can be zero'))
+  ) {
+    return commonMistakes.eigenNonzero
+  }
+
+  if (
+    problem.conceptId === 'change-of-basis' &&
+    (normalizedResponse.includes('same coordinates') ||
+      normalizedResponse.includes('standard coordinates') ||
+      normalizedResponse.includes('coordinates stay'))
+  ) {
+    return commonMistakes.basisCoordinateWeights
+  }
+
+  if (
+    problem.conceptId === 'diagonalization' &&
+    (normalizedResponse.includes('p cubed') ||
+      normalizedResponse.includes('p^3') ||
+      normalizedResponse.includes('d only') ||
+      normalizedResponse.includes('wrong order'))
+  ) {
+    return commonMistakes.diagonalCancellation
+  }
+
+  if (
+    problem.conceptId === 'proof-techniques' &&
+    (normalizedResponse.includes('examples are enough') ||
+      normalizedResponse.includes('one example proves') ||
+      normalizedResponse.includes('only zero') ||
+      normalizedResponse.includes('only addition'))
+  ) {
+    return commonMistakes.proofClosure
   }
 
   return commonMistakes.setupMismatch
@@ -2542,13 +3089,29 @@ export const createProblemSet = (
     ...getConcept(conceptId).prerequisites,
   ])
   const repairFocusMisconceptionId = repairFocus?.misconceptionId
-  const focusedRepairProblems =
+  const sameConceptFirst = (left: Problem, right: Problem) =>
+    Number(right.conceptId === conceptId) - Number(left.conceptId === conceptId)
+  const focusedRepairVariants =
     repairFocusMisconceptionId
-      ? problemBank.filter(
-          (problem) =>
-            problemMatchesMisconception(problem, repairFocusMisconceptionId) &&
-            relatedConceptIds.has(problem.conceptId),
-        )
+      ? problemBank
+          .filter(
+            (problem) =>
+              problem.repairOnly &&
+              problemMatchesMisconception(problem, repairFocusMisconceptionId) &&
+              relatedConceptIds.has(problem.conceptId),
+          )
+          .sort(sameConceptFirst)
+      : []
+  const focusedCoreRepairProblems =
+    repairFocusMisconceptionId
+      ? problemBank
+          .filter(
+            (problem) =>
+              !problem.repairOnly &&
+              problemMatchesMisconception(problem, repairFocusMisconceptionId) &&
+              relatedConceptIds.has(problem.conceptId),
+          )
+          .sort(sameConceptFirst)
       : []
   const reviewConcept = concepts
     .filter((concept) => profile.mastery[concept.id] < 75)
@@ -2556,7 +3119,12 @@ export const createProblemSet = (
   const reviewProblems = reviewConcept ? byConcept(reviewConcept.id) : []
   const source =
     mode === 'repair'
-      ? [...focusedRepairProblems, ...prerequisiteProblems, ...conceptProblems]
+      ? [
+          ...focusedRepairVariants,
+          ...focusedCoreRepairProblems,
+          ...prerequisiteProblems,
+          ...conceptProblems,
+        ]
       : mode === 'challenge'
         ? [...conceptProblems.filter((problem) => problem.difficulty >= 2), ...reviewProblems]
         : [...conceptProblems, ...reviewProblems, ...prerequisiteProblems]

@@ -67,6 +67,7 @@ The app should care about evidence:
 - Mistake detection for common early patterns.
 - Step-by-step work capture with misconception tags.
 - Targeted repair sets from the next open misconception.
+- Repair-only problem variants prioritized for the active misconception.
 - Mastery and confidence tracking by concept.
 - Repair queue with resolution.
 
@@ -74,8 +75,8 @@ The app should care about evidence:
 
 Deepen math-aware evaluation and adaptive repair:
 
-- broader misconception taxonomy
-- repair variants for each misconception
 - concept-specific step rubrics
+- larger instructor-reviewed repair bank
+- adaptive difficulty inside each misconception repair path
 - instructor-reviewed rubrics
 - optional AI explanation layer over verified problem templates
