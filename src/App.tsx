@@ -431,6 +431,7 @@ const App = () => {
                     <span>
                       {completion.answered}/{completion.total} | {completion.percent}%
                     </span>
+                    {set.repairFocus ? <span>{set.repairFocus.label}</span> : null}
                   </button>
                 )
               })}
@@ -558,6 +559,9 @@ const App = () => {
                   <span>Problem {activeSet.problemIds.indexOf(activeProblem.id) + 1}</span>
                   <span>{activeProgress.percent}% set complete</span>
                   <span>Lesson complete</span>
+                  {activeSet.repairFocus ? (
+                    <span>Repair: {activeSet.repairFocus.label}</span>
+                  ) : null}
                   {guideLevel > 0 ? (
                     <span>
                       AI guide {guideLevel}/{guidedSolution.steps.length}
@@ -828,7 +832,20 @@ const App = () => {
               {nextRepair ? (
                 <div className="repair-card">
                   <p>{nextRepair.feedback}</p>
+                  {nextRepair.evidence ? (
+                    <span>
+                      Evidence: {nextRepair.source === 'work-step' ? 'step ' : ''}
+                      {nextRepair.source === 'work-step' && nextRepair.stepIndex !== undefined
+                        ? `${nextRepair.stepIndex + 1}: `
+                        : ''}
+                      {nextRepair.evidence}
+                    </span>
+                  ) : null}
                   <strong>{nextRepair.repair}</strong>
+                  <button onClick={() => handleAddSet('repair')} type="button">
+                    <RotateCcw size={17} />
+                    Create targeted repair
+                  </button>
                   <button
                     onClick={() => setProfile(resolveMistake(profile, nextRepair.id))}
                     type="button"

@@ -65,15 +65,17 @@ The app should care about evidence:
 - Guided solution function for stuck learners.
 - Adaptive, repair, and challenge set generation.
 - Mistake detection for common early patterns.
+- Step-by-step work capture with misconception tags.
+- Targeted repair sets from the next open misconception.
 - Mastery and confidence tracking by concept.
 - Repair queue with resolution.
 
 ## Next Product Step
 
-Replace keyword scoring with stronger math-aware evaluation:
+Deepen math-aware evaluation and adaptive repair:
 
-- structured numeric parsing
-- vector/matrix answer normalization
-- step-by-step work capture
+- broader misconception taxonomy
+- repair variants for each misconception
+- concept-specific step rubrics
 - instructor-reviewed rubrics
 - optional AI explanation layer over verified problem templates
