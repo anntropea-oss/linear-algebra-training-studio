@@ -501,3 +501,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 16` returned `no checks reported on the 'codex/phase-2-repair-variants' branch`.
+
+## [2026-06-09 09:51] README Planning Doc Links Broke On GitHub
+- Problem: The planning-document links in `README.md` returned errors from the public GitHub repo.
+- Root Cause: The links used absolute local filesystem paths under `/Users/atropea/Documents/Linear%20Algebra`, which GitHub cannot resolve as repository paths.
+- Solution: Replaced the absolute paths with repo-relative Markdown links.
+- Files Changed: `README.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `rg -n "/Users/atropea|Linear%20Algebra" README.md docs` returned no matches after the fix.

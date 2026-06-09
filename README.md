@@ -33,12 +33,12 @@ npm run build:pages
 
 ## Planning Docs
 
-- [Product Blueprint](/Users/atropea/Documents/Linear%20Algebra/docs/PRODUCT_BLUEPRINT.md)
-- [Pedagogy Notes](/Users/atropea/Documents/Linear%20Algebra/docs/PEDAGOGY_NOTES.md)
-- [Curriculum Skill Map](/Users/atropea/Documents/Linear%20Algebra/docs/CURRICULUM_SKILL_MAP.md)
-- [Rebuild Analysis](/Users/atropea/Documents/Linear%20Algebra/docs/REBUILD_ANALYSIS.md)
-- [Tracking Plan](/Users/atropea/Documents/Linear%20Algebra/docs/TRACKING_PLAN.md)
-- [Solution Log](/Users/atropea/Documents/Linear%20Algebra/SOLUTIONS.md)
+- [Product Blueprint](docs/PRODUCT_BLUEPRINT.md)
+- [Pedagogy Notes](docs/PEDAGOGY_NOTES.md)
+- [Curriculum Skill Map](docs/CURRICULUM_SKILL_MAP.md)
+- [Rebuild Analysis](docs/REBUILD_ANALYSIS.md)
+- [Tracking Plan](docs/TRACKING_PLAN.md)
+- [Solution Log](SOLUTIONS.md)
 
 ## Next Engineering Step
 
