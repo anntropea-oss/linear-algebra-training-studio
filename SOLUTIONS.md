@@ -509,3 +509,11 @@
 - Files Changed: `README.md`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `rg -n "/Users/atropea|Linear%20Algebra" README.md docs` returned no matches after the fix.
+
+## [2026-06-09 09:52] No Automated PR Checks Reported For README Link Fix PR
+- Problem: GitHub reported no automated checks for PR #17, so validation for the README link fix depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local link-target, grep, and diff verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 17` returned `no checks reported on the 'codex/fix-readme-planning-links' branch`.
