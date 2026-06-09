@@ -397,3 +397,11 @@
 - Files Changed: `src/App.tsx`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test`, `npm run build`, `npm run lint`, `git diff --check`, and browser interaction confirmed Submit stays disabled when only step work is entered.
+
+## [2026-06-08 21:04] No Automated PR Checks Reported For Step Capture PR
+- Problem: GitHub reported no automated checks for PR #14, so branch validation again depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, diff, HTTP, and browser verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 14` returned `no checks reported on the 'codex/phase-2-step-work-capture' branch`.
