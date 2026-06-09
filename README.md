@@ -23,6 +23,7 @@ npm run build:pages
 - Pass lesson checks before opening the active problem set.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
+- Enter step-by-step work and get step-level feedback.
 - Ask for AI-style guided steps when you do not know how to start.
 - Submit attempts and update mastery/confidence.
 - See concept progress, recent attempts, and a repair queue.
@@ -44,8 +45,8 @@ Continue Phase 2 math-aware checking and richer problem authoring:
 - diagnostic-driven prerequisite repair
 - expanded starter problems for every university-level concept
 - more vector, matrix, and equation equivalence checks
-- step-based submissions
 - concept-specific rubrics
+- richer step misconception detection
 - larger verified problem bank
 - adaptive difficulty within each active set
 - optional AI explanations grounded in verified solutions

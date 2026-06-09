@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { evaluateMathAnswer } from '../src/domain/mathAnswer.js'
-import { evaluateResponse, getProblem } from '../src/domain/tutorEngine.js'
+import {
+  createLearnerProfile,
+  evaluateResponse,
+  evaluateWorkSteps,
+  getProblem,
+  submitResponse,
+} from '../src/domain/tutorEngine.js'
 
 describe('evaluateMathAnswer', () => {
   it('accepts equivalent numeric forms', () => {
@@ -78,5 +84,39 @@ describe('evaluateMathAnswer', () => {
 
   it('does not treat missing must-include tokens as partial evidence', () => {
     assert.equal(evaluateResponse(getProblem('least-squares-1'), 'no').headline, 'Keep shaping it')
+  })
+
+  it('evaluates step-by-step work against the verified solution path', () => {
+    const report = evaluateWorkSteps(getProblem('sys-1'), [
+      'Add equations: 2x = 8.',
+      'x = 4.',
+      'Substitute 4 + y = 6, so y = 2.',
+    ])
+
+    assert.equal(report.onTrack, 3)
+    assert.equal(report.headline, 'Work path is coherent')
+  })
+
+  it('flags the first drifting work step', () => {
+    const report = evaluateWorkSteps(getProblem('sys-1'), ['Subtract the equations.'])
+
+    assert.equal(report.headline, 'Repair step 1')
+    assert.equal(report.feedback[0].status, 'needs-work')
+  })
+
+  it('stores submitted work steps with the attempt record', () => {
+    const profile = createLearnerProfile('systems')
+    const activeSet = profile.problemSets[0]
+    const nextProfile = submitResponse(profile, activeSet.id, 'sys-1', 'x = 4, y = 2', {
+      workSteps: ['Add equations: 2x = 8.', 'x = 4.', 'Substitute for y.'],
+    })
+
+    assert.deepEqual(nextProfile.attempts[0].workSteps, [
+      'Add equations: 2x = 8.',
+      'x = 4.',
+      'Substitute for y.',
+    ])
+    assert.deepEqual(activeSet.progress['sys-1'].workSteps, [])
+    assert.equal(nextProfile.problemSets[0].progress['sys-1'].workSteps[1], 'x = 4.')
   })
 })

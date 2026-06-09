@@ -9,6 +9,7 @@ import {
   CircleDot,
   Flame,
   Lightbulb,
+  ListChecks,
   Plus,
   RefreshCcw,
   RotateCcw,
@@ -25,12 +26,14 @@ import {
   diagnosticQuestions,
   evaluateLessonChecks,
   evaluateResponse,
+  evaluateWorkSteps,
   getActiveSet,
   getConcept,
   getLesson,
   getLessonChecks,
   getNextProblemInSet,
   getPrerequisiteStatus,
+  getWorkStepTargets,
   markLessonRead,
   overallMastery,
   resolveMistake,
@@ -93,6 +96,7 @@ const App = () => {
     profile.problemSets[0]?.id,
   )
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [workStepDrafts, setWorkStepDrafts] = useState<Record<string, string[]>>({})
   const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
   const [guideLevels, setGuideLevels] = useState<Record<string, number>>({})
   const [diagnosticResponses, setDiagnosticResponses] = useState<Record<string, string>>(
@@ -127,10 +131,18 @@ const App = () => {
   const activeProgress = setCompletion(activeSet)
   const currentProgress = activeSet.progress[activeProblem.id]
   const draftAnswer = drafts[activeProblem.id] ?? currentProgress?.response ?? ''
+  const workStepTargets = getWorkStepTargets(activeProblem)
+  const currentWorkSteps = workStepTargets.map(
+    (_, index) =>
+      workStepDrafts[activeProblem.id]?.[index] ??
+      currentProgress?.workSteps?.[index] ??
+      '',
+  )
   const hintLevel = hintLevels[activeProblem.id] ?? currentProgress?.hintsUsed ?? 0
   const guideLevel =
     guideLevels[activeProblem.id] ?? currentProgress?.guideStepsUsed ?? 0
   const liveFeedback = evaluateResponse(activeProblem, draftAnswer)
+  const workStepReport = evaluateWorkSteps(activeProblem, currentWorkSteps)
   const guidedSolution = createGuidedSolution(
     activeProblem,
     draftAnswer,
@@ -151,6 +163,7 @@ const App = () => {
     setProfile(nextProfile)
     setSelectedSetId(nextProfile.problemSets[0]?.id)
     setDrafts({})
+    setWorkStepDrafts({})
     setHintLevels({})
     setGuideLevels({})
     setDiagnosticResponses(nextProfile.diagnostic?.responses ?? {})
@@ -172,6 +185,7 @@ const App = () => {
       {
         hintsUsed: hintLevel,
         guideStepsUsed: guideLevel,
+        workSteps: currentWorkSteps,
       },
     )
     const nextSet = getActiveSet(nextProfile, activeSet.id)
@@ -180,6 +194,10 @@ const App = () => {
     setDrafts((currentDrafts) => ({
       ...currentDrafts,
       [activeProblem.id]: '',
+    }))
+    setWorkStepDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [activeProblem.id]: [],
     }))
     setHintLevels((currentLevels) => ({
       ...currentLevels,
@@ -214,6 +232,7 @@ const App = () => {
     setSelectedStart(nextProfile.startingPoint)
     setSelectedSetId(nextProfile.problemSets[0]?.id)
     setDrafts({})
+    setWorkStepDrafts({})
     setHintLevels({})
     setGuideLevels({})
     setLessonCheckAnswers({})
@@ -546,17 +565,62 @@ const App = () => {
                   ) : null}
                 </div>
                 <h3>{activeProblem.prompt}</h3>
-                <textarea
-                  aria-label="Answer"
-                  onChange={(event) =>
-                    setDrafts((currentDrafts) => ({
-                      ...currentDrafts,
-                      [activeProblem.id]: event.target.value,
-                    }))
-                  }
-                  placeholder="Work here. The coach responds as you type."
-                  value={draftAnswer}
-                />
+                <section className="work-step-panel">
+                  <div className="work-step-heading">
+                    <div>
+                      <p className="eyebrow">Work path</p>
+                      <h4>{workStepReport.headline}</h4>
+                    </div>
+                    <span>
+                      {workStepReport.onTrack}/{workStepReport.total}
+                    </span>
+                  </div>
+                  <div className="work-step-list">
+                    {workStepReport.feedback.map((step) => (
+                      <label
+                        className={`work-step-row ${step.status}`}
+                        key={`${activeProblem.id}-step-${step.index}`}
+                      >
+                        <span className="work-step-number">{step.index + 1}</span>
+                        <textarea
+                          aria-label={`Work step ${step.index + 1}`}
+                          className="work-step-input"
+                          onChange={(event) =>
+                            setWorkStepDrafts((currentDrafts) => {
+                              const existing =
+                                currentDrafts[activeProblem.id] ??
+                                currentProgress?.workSteps ??
+                                []
+                              const nextSteps = [...existing]
+                              nextSteps[step.index] = event.target.value
+                              return {
+                                ...currentDrafts,
+                                [activeProblem.id]: nextSteps,
+                              }
+                            })
+                          }
+                          placeholder={`Step ${step.index + 1}`}
+                          value={currentWorkSteps[step.index] ?? ''}
+                        />
+                        <span className="work-step-feedback">{step.detail}</span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+                <label className="answer-field">
+                  <span>Final answer</span>
+                  <textarea
+                    aria-label="Final answer"
+                    onChange={(event) =>
+                      setDrafts((currentDrafts) => ({
+                        ...currentDrafts,
+                        [activeProblem.id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Answer"
+                    value={draftAnswer}
+                  />
+                </label>
                 <div className="problem-actions">
                   <button
                     onClick={() =>
@@ -618,6 +682,29 @@ const App = () => {
                   <div className="next-action">
                     <strong>Next move</strong>
                     <span>{liveFeedback.nextAction}</span>
+                  </div>
+                </section>
+
+                <section className="panel coach-panel working">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">Step coach</p>
+                      <h2>{workStepReport.headline}</h2>
+                    </div>
+                    <ListChecks size={18} />
+                  </div>
+                  <p>{workStepReport.detail}</p>
+                  <div className="next-action">
+                    <strong>Next step</strong>
+                    <span>{workStepReport.nextAction}</span>
+                  </div>
+                  <div className="step-feedback-list">
+                    {workStepReport.feedback.map((step) => (
+                      <div className={step.status} key={`${step.index}-${step.status}`}>
+                        <strong>Step {step.index + 1}</strong>
+                        <span>{step.status.replace('-', ' ')}</span>
+                      </div>
+                    ))}
                   </div>
                 </section>
 

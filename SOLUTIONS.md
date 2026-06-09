@@ -365,3 +365,35 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: The `caffeinate -dimsu` command is running in active session `35436`.
+
+## [2026-06-08 21:01] Step-by-Step Work Was Not Captured
+- Problem: Learners could only submit one final response, so the app could not record intermediate reasoning or identify where a solution path drifted.
+- Root Cause: The problem progress and attempt model had no `workSteps` field, and the UI only exposed a single answer textarea.
+- Solution: Added step-work data to progress and attempts, added live step evaluation against verified solution steps, added a work-path editor and step coach to the problem workspace, and included step-progress summaries in attempt feedback.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/domain/storage.ts`, `src/App.tsx`, `src/App.css`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test`, `npm run build`, `npm run lint`, `git diff --check`, `curl -I http://127.0.0.1:5173/`, and browser interaction verified step rows, step-level feedback, and submitted attempt summaries.
+
+## [2026-06-08 21:01] Saved Profiles Missing Work Step Fields
+- Problem: Existing localStorage profiles created before step capture would not have `workSteps` on prior progress or attempts.
+- Root Cause: The persistence schema gained a new field after earlier profiles were already saved.
+- Solution: Updated profile normalization to backfill empty `workSteps` arrays for saved problem progress and attempt records.
+- Files Changed: `src/domain/storage.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test`, `npm run build`, `npm run lint`, and `git diff --check` completed successfully after the normalization update.
+
+## [2026-06-08 21:01] Initial Browser Verification Tab Crashed
+- Problem: The first in-app browser navigation to the local Vite app timed out and left the tab on a crash page.
+- Root Cause: Unknown; the local server itself responded with HTTP 200, so the failure was isolated to the first browser tab.
+- Solution: Retried in a clean browser tab and completed the UI verification there.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `curl -I http://127.0.0.1:5173/` returned HTTP 200, and the clean browser tab loaded `Linear Algebra Training Studio` and verified the step-work flow.
+
+## [2026-06-08 21:01] Step-Only Submissions Could Advance Problems
+- Problem: The first step-capture UI allowed the Submit button when a learner had entered step work but no final answer, which could mark a problem answered without a final response.
+- Root Cause: The submit disabled condition counted step evidence as sufficient for submission.
+- Solution: Restored the final-answer requirement while keeping step feedback live before submission.
+- Files Changed: `src/App.tsx`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test`, `npm run build`, `npm run lint`, `git diff --check`, and browser interaction confirmed Submit stays disabled when only step work is entered.
