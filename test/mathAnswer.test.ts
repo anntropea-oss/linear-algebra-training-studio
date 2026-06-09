@@ -8,6 +8,7 @@ import {
   evaluateResponse,
   evaluateWorkSteps,
   getProblem,
+  problemBank,
   submitResponse,
 } from '../src/domain/tutorEngine.js'
 
@@ -87,6 +88,17 @@ describe('evaluateMathAnswer', () => {
     assert.equal(evaluateResponse(getProblem('least-squares-1'), 'no').headline, 'Keep shaping it')
   })
 
+  it('detects concept-specific misconception patterns in final answers', () => {
+    assert.equal(
+      evaluateResponse(getProblem('mat-2'), 'put the basis images as rows').mistake?.id,
+      'basis-images-as-columns',
+    )
+    assert.equal(
+      evaluateResponse(getProblem('det-1'), 'det = 2 - 12 = -10').mistake?.id,
+      'determinant-order-error',
+    )
+  })
+
   it('evaluates step-by-step work against the verified solution path', () => {
     const report = evaluateWorkSteps(getProblem('sys-1'), [
       'Add equations: 2x = 8.',
@@ -104,6 +116,15 @@ describe('evaluateMathAnswer', () => {
     assert.equal(report.headline, 'Repair step 1')
     assert.equal(report.feedback[0].status, 'needs-work')
     assert.equal(report.misconception?.pattern.id, 'sign-slip')
+  })
+
+  it('detects concept-specific misconception patterns in work steps', () => {
+    const report = evaluateWorkSteps(getProblem('rank-nullity-1'), [
+      'Use the number of rows, so rank + nullity = 4.',
+    ])
+
+    assert.equal(report.headline, 'Repair step 1')
+    assert.equal(report.misconception?.pattern.id, 'rank-nullity-domain')
   })
 
   it('stores submitted work steps with the attempt record', () => {
@@ -152,7 +173,35 @@ describe('evaluateMathAnswer', () => {
 
     assert.equal(repairSet.repairFocus?.misconceptionId, 'sign-slip')
     assert.equal(repairSet.title, 'Sign or arithmetic slip repair set')
+    assert.equal(repairSet.problemIds[0], 'sys-repair-sign')
     assert.ok(repairSet.problemIds.includes('sys-1'))
+  })
+
+  it('keeps repair-only variants out of ordinary adaptive sets', () => {
+    const profile = createLearnerProfile('matrix-transformations')
+    const activeSet = profile.problemSets[0]
+    const repairVariantIds = new Set(
+      problemBank.filter((problem) => problem.repairOnly).map((problem) => problem.id),
+    )
+
+    assert.equal(activeSet.problemIds.some((problemId) => repairVariantIds.has(problemId)), false)
+  })
+
+  it('prioritizes matching repair-only variants in targeted repair sets', () => {
+    const profile = createLearnerProfile('matrix-transformations')
+    const activeSet = profile.problemSets[0]
+    const profileWithRepair = submitResponse(
+      profile,
+      activeSet.id,
+      'mat-2',
+      'put the basis images as rows',
+    )
+    const repairedProfile = addProblemSet(profileWithRepair, 'repair')
+    const repairSet = repairedProfile.problemSets[0]
+
+    assert.equal(repairSet.repairFocus?.misconceptionId, 'basis-images-as-columns')
+    assert.equal(repairSet.problemIds[0], 'mat-repair-columns')
+    assert.equal(getProblem(repairSet.problemIds[0]).repairOnly, true)
   })
 
   it('prefers targeted repairs over legacy untargeted repairs', () => {
