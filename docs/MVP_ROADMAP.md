@@ -26,6 +26,7 @@ Status: started
 - Accept equivalent algebraic forms.
 - Capture step-by-step work and save it with attempts.
 - Give live step-level feedback against verified solution paths.
+- Tag misconception patterns from work steps and route targeted repair sets.
 - Score using concept-specific rubrics.
 
 ## Phase 2A: Stronger Adaptivity

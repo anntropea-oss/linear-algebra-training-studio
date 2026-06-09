@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import { evaluateMathAnswer } from '../src/domain/mathAnswer.js'
 import {
+  addProblemSet,
   createLearnerProfile,
   evaluateResponse,
   evaluateWorkSteps,
@@ -102,6 +103,7 @@ describe('evaluateMathAnswer', () => {
 
     assert.equal(report.headline, 'Repair step 1')
     assert.equal(report.feedback[0].status, 'needs-work')
+    assert.equal(report.misconception?.pattern.id, 'sign-slip')
   })
 
   it('stores submitted work steps with the attempt record', () => {
@@ -118,5 +120,61 @@ describe('evaluateMathAnswer', () => {
     ])
     assert.deepEqual(activeSet.progress['sys-1'].workSteps, [])
     assert.equal(nextProfile.problemSets[0].progress['sys-1'].workSteps[1], 'x = 4.')
+  })
+
+  it('logs step misconceptions even when the final answer is correct', () => {
+    const profile = createLearnerProfile('systems')
+    const activeSet = profile.problemSets[0]
+    const nextProfile = submitResponse(profile, activeSet.id, 'sys-1', 'x = 4, y = 2', {
+      workSteps: ['Subtract the equations.'],
+    })
+
+    assert.equal(nextProfile.attempts[0].misconceptionId, 'sign-slip')
+    assert.equal(nextProfile.mistakes[0].source, 'work-step')
+    assert.equal(nextProfile.mistakes[0].stepIndex, 0)
+    assert.equal(nextProfile.mistakes[0].misconceptionId, 'sign-slip')
+  })
+
+  it('routes repair sets toward the next open misconception', () => {
+    const profile = createLearnerProfile('systems')
+    const activeSet = profile.problemSets[0]
+    const profileWithRepair = submitResponse(
+      profile,
+      activeSet.id,
+      'sys-1',
+      'x = 4, y = 2',
+      {
+        workSteps: ['Subtract the equations.'],
+      },
+    )
+    const repairedProfile = addProblemSet(profileWithRepair, 'repair')
+    const repairSet = repairedProfile.problemSets[0]
+
+    assert.equal(repairSet.repairFocus?.misconceptionId, 'sign-slip')
+    assert.equal(repairSet.title, 'Sign or arithmetic slip repair set')
+    assert.ok(repairSet.problemIds.includes('sys-1'))
+  })
+
+  it('prefers targeted repairs over legacy untargeted repairs', () => {
+    const profile = createLearnerProfile('systems')
+    const activeSet = profile.problemSets[0]
+    const profileWithRepair = submitResponse(profile, activeSet.id, 'sys-1', 'x = 4, y = 2', {
+      workSteps: ['Subtract the equations.'],
+    })
+    const profileWithLegacyRepair = {
+      ...profileWithRepair,
+      mistakes: [
+        {
+          ...profileWithRepair.mistakes[0],
+          id: 'legacy-mistake',
+          label: 'Legacy repair',
+          misconceptionId: undefined,
+        },
+        ...profileWithRepair.mistakes,
+      ],
+    }
+    const repairedProfile = addProblemSet(profileWithLegacyRepair, 'repair')
+
+    assert.equal(repairedProfile.problemSets[0].repairFocus?.misconceptionId, 'sign-slip')
   })
 })

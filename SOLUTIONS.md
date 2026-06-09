@@ -405,3 +405,43 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 14` returned `no checks reported on the 'codex/phase-2-step-work-capture' branch`.
+
+## [2026-06-08 21:14] Step Misconceptions Did Not Route Repairs
+- Problem: Captured work steps could be marked as needing repair, but the app did not tag the specific misconception or use that tag to generate a focused repair set.
+- Root Cause: Step feedback only stored generic `needs-work` status, and repair sets only used broad prerequisite/concept selection.
+- Solution: Added misconception metadata to step feedback, attempts, and repair records; classified common step drifts; prioritized repair-set problems that match the next open misconception; and added a targeted repair action in the repair queue.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/App.tsx`, `src/App.css`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test`, `npm run build`, `npm run lint`, `git diff --check`, and browser interaction verified a sign-slip step tag, repair evidence, and a targeted repair set.
+
+## [2026-06-08 21:14] Correct Final Answers Could Hide Bad Work
+- Problem: A learner could submit a correct final answer while the recorded work path still contained a misconception, leaving no repair target for the faulty reasoning.
+- Root Cause: `submitResponse` only created mistake records from final-answer mistake feedback.
+- Solution: Submission now creates repair records from the first detected step misconception when final-answer feedback has no mistake.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms a correct final answer with a sign-slip work step still logs a work-step repair record.
+
+## [2026-06-08 21:16] Browser LocalStorage Reset Was Unavailable
+- Problem: Browser verification could not clear the learner profile with a direct `localStorage.clear()` automation call in the in-app browser context.
+- Root Cause: Unknown; the page evaluation environment did not expose `localStorage` for that automation attempt.
+- Solution: Used the app's reset control to clear the profile state before continuing browser verification.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: Browser verification continued from a reset Systems path and confirmed step misconception evidence plus targeted repair-set creation.
+
+## [2026-06-08 21:17] Legacy Repairs Could Delay Targeted Repair
+- Problem: Existing unresolved repair records without `misconceptionId` could be selected before newer targeted repair records, delaying the focused repair set a learner should see next.
+- Root Cause: The repair selector chose the first unresolved mistake without preferring records that contain the new misconception metadata.
+- Solution: Updated repair selection to prefer unresolved mistakes with a `misconceptionId`, while still falling back to any unresolved mistake for older records.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: Added a regression test proving targeted repairs are selected before legacy untargeted repairs.
+
+## [2026-06-08 21:18] No Automated PR Checks Reported For Misconception Routing PR
+- Problem: GitHub reported no automated checks for PR #15, so validation for the misconception-routing branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, diff, and browser verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 15` returned `no checks reported on the 'codex/phase-2-misconception-routing' branch`.

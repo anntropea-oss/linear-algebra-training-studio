@@ -681,6 +681,12 @@ button:disabled {
   justify-self: start;
 }
 
+.repair-card span {
+  color: #49534f;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .bottom-grid {
   display: grid;
   gap: 18px;

@@ -145,6 +145,10 @@ export type ProblemSet = {
   title: string
   mode: SetMode
   conceptId: ConceptId
+  repairFocus?: {
+    misconceptionId: string
+    label: string
+  }
   createdAt: string
   status: ProblemSetStatus
   problemIds: string[]
@@ -162,6 +166,8 @@ export type Attempt = {
   hintsUsed: number
   guideStepsUsed: number
   mistakeLabel?: string
+  misconceptionId?: string
+  misconceptionLabel?: string
   createdAt: string
 }
 
@@ -173,6 +179,10 @@ export type MistakeRecord = {
   feedback: string
   repair: string
   response: string
+  misconceptionId?: string
+  source?: 'final-answer' | 'work-step'
+  stepIndex?: number
+  evidence?: string
   createdAt: string
   resolved: boolean
 }
@@ -237,6 +247,7 @@ export type WorkStepFeedback = {
   status: WorkStepStatus
   detail: string
   nextAction: string
+  misconception?: MistakePattern
 }
 
 export type WorkStepReport = {
@@ -248,6 +259,11 @@ export type WorkStepReport = {
   onTrack: number
   total: number
   feedback: WorkStepFeedback[]
+  misconception?: {
+    pattern: MistakePattern
+    stepIndex: number
+    evidence: string
+  }
 }
 
 export const concepts: Concept[] = [
@@ -1712,6 +1728,13 @@ const commonMistakes = {
     feedback: 'An eigenvector can stretch, shrink, or flip. It only stays on its line.',
     repair: 'Use Av = lambda v and ask whether the output is a scalar multiple of v.',
   },
+  setupMismatch: {
+    id: 'setup-mismatch',
+    label: 'Setup does not match the goal',
+    triggers: ['guess', 'skip setup', 'not sure', 'random'],
+    feedback: 'This step is not yet tied to the definition, equation, or test the problem needs.',
+    repair: 'Restate what the problem asks for, then write the first matching equation or definition.',
+  },
 } satisfies Record<string, MistakePattern>
 
 export const problemBank: Problem[] = [
@@ -2313,6 +2336,68 @@ const meaningfulTokens = (value: string) =>
     .split(/[^a-z0-9/.-]+/)
     .filter((token) => token.length > 1 && !stopWords.has(token))
 
+const misconceptionFromTriggers = (problem: Problem, value: string) => {
+  const normalizedValue = normalize(value)
+  return problem.mistakePatterns.find((mistake) =>
+    mistake.triggers.some((trigger) => normalizedValue.includes(normalize(trigger))),
+  )
+}
+
+const classifyWorkStepMisconception = (
+  problem: Problem,
+  response: string,
+  expected: string,
+) => {
+  const normalizedResponse = normalize(response)
+  const normalizedExpected = normalize(expected)
+  const triggerMatch = misconceptionFromTriggers(problem, response)
+
+  if (triggerMatch) return triggerMatch
+
+  if (
+    normalizedExpected.includes('add') &&
+    (normalizedResponse.includes('subtract') || normalizedResponse.includes('minus'))
+  ) {
+    return commonMistakes.sign
+  }
+
+  if (
+    normalizedExpected.includes('coordinate') &&
+    (normalizedResponse.includes('row') || normalizedResponse.includes('column'))
+  ) {
+    return commonMistakes.coordinate
+  }
+
+  if (
+    problem.conceptId === 'row-reduction' &&
+    (normalizedResponse.includes('column operation') ||
+      normalizedResponse.includes('add columns') ||
+      normalizedResponse.includes('multiply column'))
+  ) {
+    return commonMistakes.rowOperation
+  }
+
+  if (
+    ['span', 'subspaces', 'fundamental-subspaces'].includes(problem.conceptId) &&
+    (normalizedResponse.includes('number of vectors') ||
+      normalizedResponse.includes('enough vectors') ||
+      normalizedResponse.includes('too many vectors'))
+  ) {
+    return commonMistakes.spanCount
+  }
+
+  if (
+    problem.conceptId === 'eigenvalues' &&
+    (normalizedResponse.includes('unchanged') ||
+      normalizedResponse.includes('same vector') ||
+      normalizedResponse.includes('does not move'))
+  ) {
+    return commonMistakes.eigenScale
+  }
+
+  return commonMistakes.setupMismatch
+}
+
 const evaluateWorkStep = (
   problem: Problem,
   response: string,
@@ -2359,13 +2444,16 @@ const evaluateWorkStep = (
     }
   }
 
+  const misconception = classifyWorkStepMisconception(problem, response, expected)
+
   return {
     index,
     response,
     expected,
     status: 'needs-work',
-    detail: `Step ${index + 1} has work, but it does not match the expected move yet.`,
-    nextAction: expected,
+    detail: `${misconception.label}: ${misconception.feedback}`,
+    nextAction: misconception.repair,
+    misconception,
   }
 }
 
@@ -2381,6 +2469,14 @@ export const evaluateWorkSteps = (
   const onTrack = feedback.filter((step) => step.status === 'on-track').length
   const firstNeedsWork = feedback.find((step) => step.status === 'needs-work')
   const firstEmpty = feedback.find((step) => step.status === 'empty')
+  const firstMisconception = feedback.find((step) => step.misconception)
+  const misconception = firstMisconception?.misconception
+    ? {
+        pattern: firstMisconception.misconception,
+        stepIndex: firstMisconception.index,
+        evidence: firstMisconception.response,
+      }
+    : undefined
 
   if (firstNeedsWork) {
     return {
@@ -2392,6 +2488,7 @@ export const evaluateWorkSteps = (
       onTrack,
       total: targets.length,
       feedback,
+      misconception,
     }
   }
 
@@ -2405,6 +2502,7 @@ export const evaluateWorkSteps = (
       onTrack,
       total: targets.length,
       feedback,
+      misconception,
     }
   }
 
@@ -2419,24 +2517,46 @@ export const evaluateWorkSteps = (
     onTrack,
     total: targets.length,
     feedback,
+    misconception,
   }
 }
+
+const nextOpenRepair = (profile: LearnerProfile) =>
+  profile.mistakes.find((mistake) => !mistake.resolved && mistake.misconceptionId) ??
+  profile.mistakes.find((mistake) => !mistake.resolved)
+
+const problemMatchesMisconception = (problem: Problem, misconceptionId: string) =>
+  problem.mistakePatterns.some((mistake) => mistake.id === misconceptionId)
 
 export const createProblemSet = (
   profile: LearnerProfile,
   mode: SetMode = 'adaptive',
   forcedConceptId?: ConceptId,
 ): ProblemSet => {
-  const conceptId = forcedConceptId ?? recommendConcept(profile)
+  const repairFocus = mode === 'repair' ? nextOpenRepair(profile) : undefined
+  const conceptId = forcedConceptId ?? repairFocus?.conceptId ?? recommendConcept(profile)
   const conceptProblems = byConcept(conceptId)
   const prerequisiteProblems = getConcept(conceptId).prerequisites.flatMap(byConcept)
+  const relatedConceptIds = new Set([
+    conceptId,
+    ...getConcept(conceptId).prerequisites,
+  ])
+  const repairFocusMisconceptionId = repairFocus?.misconceptionId
+  const focusedRepairProblems =
+    repairFocusMisconceptionId
+      ? problemBank.filter(
+          (problem) =>
+            problemMatchesMisconception(problem, repairFocusMisconceptionId) &&
+            relatedConceptIds.has(problem.conceptId),
+        )
+      : []
   const reviewConcept = concepts
     .filter((concept) => profile.mastery[concept.id] < 75)
     .sort((left, right) => profile.mastery[left.id] - profile.mastery[right.id])[0]
   const reviewProblems = reviewConcept ? byConcept(reviewConcept.id) : []
   const source =
     mode === 'repair'
-      ? [...prerequisiteProblems, ...conceptProblems]
+      ? [...focusedRepairProblems, ...prerequisiteProblems, ...conceptProblems]
       : mode === 'challenge'
         ? [...conceptProblems.filter((problem) => problem.difficulty >= 2), ...reviewProblems]
         : [...conceptProblems, ...reviewProblems, ...prerequisiteProblems]
@@ -2446,9 +2566,19 @@ export const createProblemSet = (
 
   return {
     id: uid('set'),
-    title: `${getConcept(conceptId).shortTitle} ${mode} set`,
+    title:
+      mode === 'repair' && repairFocus
+        ? `${repairFocus.label} repair set`
+        : `${getConcept(conceptId).shortTitle} ${mode} set`,
     mode,
     conceptId,
+    repairFocus:
+      mode === 'repair' && repairFocus?.misconceptionId
+        ? {
+            misconceptionId: repairFocus.misconceptionId,
+            label: repairFocus.label,
+          }
+        : undefined,
     createdAt,
     status: 'active',
     problemIds: uniqueProblems.map((problem) => problem.id),
@@ -2698,6 +2828,20 @@ export const submitResponse = (
   const feedback = evaluateResponse(problem, response)
   const workSteps = (support.workSteps ?? []).map((step) => step.trim())
   const stepReport = evaluateWorkSteps(problem, workSteps)
+  const misconceptionEvidence = feedback.mistake
+    ? {
+        pattern: feedback.mistake,
+        source: 'final-answer' as const,
+        evidence: response,
+      }
+    : stepReport.misconception
+      ? {
+          pattern: stepReport.misconception.pattern,
+          source: 'work-step' as const,
+          stepIndex: stepReport.misconception.stepIndex,
+          evidence: stepReport.misconception.evidence,
+        }
+      : undefined
   const hintsUsed = support.hintsUsed ?? 0
   const guideStepsUsed = support.guideStepsUsed ?? 0
   const supportPenalty =
@@ -2720,19 +2864,28 @@ export const submitResponse = (
         : `${feedback.detail} Work path: ${stepReport.onTrack}/${stepReport.total} steps on track.`,
     hintsUsed,
     guideStepsUsed,
-    mistakeLabel: feedback.mistake?.label,
+    mistakeLabel: misconceptionEvidence?.pattern.label,
+    misconceptionId: misconceptionEvidence?.pattern.id,
+    misconceptionLabel: misconceptionEvidence?.pattern.label,
     createdAt,
   }
   const mistake: MistakeRecord | null =
-    feedback.tone === 'mistake' && feedback.mistake
+    misconceptionEvidence
       ? {
           id: uid('mistake'),
           conceptId: problem.conceptId,
           problemId,
-          label: feedback.mistake.label,
-          feedback: feedback.mistake.feedback,
-          repair: feedback.mistake.repair,
+          label: misconceptionEvidence.pattern.label,
+          feedback: misconceptionEvidence.pattern.feedback,
+          repair: misconceptionEvidence.pattern.repair,
           response,
+          misconceptionId: misconceptionEvidence.pattern.id,
+          source: misconceptionEvidence.source,
+          stepIndex:
+            misconceptionEvidence.source === 'work-step'
+              ? misconceptionEvidence.stepIndex
+              : undefined,
+          evidence: misconceptionEvidence.evidence,
           createdAt,
           resolved: false,
         }
@@ -2742,14 +2895,14 @@ export const submitResponse = (
     const progress = {
       ...set.progress,
       [problemId]: {
-          ...set.progress[problemId],
-          problemId,
-          status: 'answered' as ProblemStatus,
-          response,
-          workSteps,
-          score,
-          hintsUsed,
-          guideStepsUsed,
+        ...set.progress[problemId],
+        problemId,
+        status: 'answered' as ProblemStatus,
+        response,
+        workSteps,
+        score,
+        hintsUsed,
+        guideStepsUsed,
         submittedAt: createdAt,
       },
     }
@@ -2783,12 +2936,16 @@ export const submitResponse = (
         id: uid('activity'),
         createdAt,
         title:
-          guideStepsUsed > 0
-            ? 'Guided problem checked'
-            : feedback.tone === 'correct'
-              ? 'Problem solved'
-              : 'Problem checked',
-        detail: `${getConcept(problem.conceptId).shortTitle}: ${feedback.headline}`,
+          misconceptionEvidence
+            ? 'Repair target logged'
+            : guideStepsUsed > 0
+              ? 'Guided problem checked'
+              : feedback.tone === 'correct'
+                ? 'Problem solved'
+                : 'Problem checked',
+        detail: misconceptionEvidence
+          ? `${getConcept(problem.conceptId).shortTitle}: ${misconceptionEvidence.pattern.label}`
+          : `${getConcept(problem.conceptId).shortTitle}: ${feedback.headline}`,
       },
       ...profile.activity,
     ].slice(0, 30),
