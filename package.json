@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "build:pages": "tsc -b && vite build --base=/linear-algebra-training-studio/",
     "lint": "eslint .",
+    "test": "npm run test:math",
+    "test:math": "tsc -p tsconfig.test.json && node --test .tmp-tests/test/mathAnswer.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

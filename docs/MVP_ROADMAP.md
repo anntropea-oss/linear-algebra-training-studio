@@ -17,8 +17,12 @@ Status: current app
 
 ## Phase 2: Math-Aware Checking
 
-- Parse vector answers robustly.
-- Parse matrix answers robustly.
+Status: started
+
+- Parse numeric answers with integer, decimal, and fraction equivalence.
+- Parse vector answers with labeled coordinates and fraction/decimal equivalence.
+- Parse matrix answers entry by entry for bracketed and row-major forms.
+- Keep text accepted answers as fallback while structured problem rubrics expand.
 - Accept equivalent algebraic forms.
 - Capture step-by-step work.
 - Score using concept-specific rubrics.

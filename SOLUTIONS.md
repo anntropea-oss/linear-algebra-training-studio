@@ -309,3 +309,51 @@
 - Files Changed: `README.md`, `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `gh api --method POST repos/anntropea-oss/linear-algebra-training-studio/pages` returned HTTP 422, while `curl -I https://rich-rabbits-give.loca.lt` returned HTTP 200.
+
+## [2026-06-08 20:49] Phase 2 Lacked Math-Aware Scoring
+- Problem: Problem responses were still graded mainly with normalized string matching, so equivalent forms such as fractions versus decimals, labeled coordinates, and matrix entries were fragile.
+- Root Cause: The MVP evaluator had no structured expected-answer model or math parser.
+- Solution: Added a reusable math answer evaluator for numbers, vectors, and matrices; attached structured expected answers to the first batch of unambiguous problems; and integrated the evaluator into live feedback while preserving text accepted-answer fallbacks.
+- Files Changed: `src/domain/mathAnswer.ts`, `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `tsconfig.test.json`, `package.json`, `.gitignore`, `README.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run test:math`, `npm run build`, `npm run lint`, and `git diff --check` completed successfully.
+
+## [2026-06-08 20:49] Optional Must-Include Tokens Overstated Partial Credit
+- Problem: Problems without `mustInclude` tokens treated any non-empty short response as if it matched required evidence, which could overstate partial progress for wrong answers.
+- Root Cause: `mustIncludeMatch` defaulted to true when no `mustInclude` array existed and was reused as a partial-credit signal.
+- Solution: Split the logic so missing `mustInclude` still allows accepted answers, but only actual required-token matches count as partial evidence.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run test:math`, `npm run build`, `npm run lint`, and `git diff --check` completed successfully.
+
+## [2026-06-08 20:49] Direct TypeScript Test Execution Was Unsupported
+- Problem: `node --experimental-strip-types --input-type=module` failed on a TypeScript type declaration while checking whether parser tests could run directly.
+- Root Cause: The local Node runtime did not strip TypeScript syntax in that execution mode.
+- Solution: Added a dedicated `tsconfig.test.json` path that compiles parser tests to `.tmp-tests`, then runs them with Node's built-in test runner.
+- Files Changed: `package.json`, `tsconfig.test.json`, `test/mathAnswer.test.ts`, `.gitignore`, `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `npm test` compiled and ran eight parser/integration tests successfully.
+
+## [2026-06-08 20:49] Initial Phase 2 Build And Lint Failures
+- Problem: The first Phase 2 verification pass failed because TypeScript did not narrow an optional `mustInclude` array, and ESLint rejected unnecessary escapes in parser regex literals.
+- Root Cause: The evaluator integration referenced an optional field after a boolean guard, and the first regex literal form was stricter than ESLint allows.
+- Solution: Used optional chaining for the token check and moved the grouping regex to a `RegExp` constructor string.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/domain/mathAnswer.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm run test:math`, `npm run build`, `npm run lint`, and `git diff --check` completed successfully after the fixes.
+
+## [2026-06-08 20:50] Node Test Compile Needed ESM File Extensions
+- Problem: Importing the tutor engine in the parser integration test failed because NodeNext module resolution requires explicit file extensions for relative ESM imports.
+- Root Cause: The app's bundler-friendly import from `tutorEngine.ts` to `mathAnswer.ts` used an extensionless relative path, which Vite accepts but the Node test compile does not.
+- Solution: Updated the new parser import in `tutorEngine.ts` to use the emitted `.js` extension while keeping the Vite build compatible.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test`, `npm run build`, `npm run lint`, and `git diff --check` completed successfully after the import update.
+
+## [2026-06-08 20:52] No Automated PR Checks Reported For Phase 2 PR
+- Problem: GitHub reported no automated checks for PR #13, so branch validation again depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local `npm test`, `npm run build`, `npm run lint`, and `git diff --check` as the verification path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 13` returned `no checks reported on the 'codex/phase-2-math-checking' branch`.
