@@ -357,3 +357,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 13` returned `no checks reported on the 'codex/phase-2-math-checking' branch`.
+
+## [2026-06-08 20:53] Caffeinate Session Was No Longer Running
+- Problem: The keep-awake `caffeinate -dimsu` process was no longer present during the final Phase 2 sanity check.
+- Root Cause: Unknown; previous live or detached keep-awake sessions do not reliably persist across long thread activity.
+- Solution: Restarted `caffeinate -dimsu` as live session `35436`.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: The `caffeinate -dimsu` command is running in active session `35436`.
