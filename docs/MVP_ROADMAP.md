@@ -26,6 +26,7 @@ Status: started
 - Accept equivalent algebraic forms.
 - Capture step-by-step work and save it with attempts.
 - Give live step-level feedback against verified solution paths.
+- Score work steps with concept-specific evidence rubrics instead of plain token overlap.
 - Tag misconception patterns from work steps and route targeted repair sets.
 - Use a broader misconception taxonomy across core linear algebra concepts.
 - Serve repair-only problem variants before ordinary practice in focused repair sets.
@@ -42,6 +43,7 @@ Status: started
 
 - Add multiple problems per concept.
 - Add variants by difficulty.
+- Expand step-rubric coverage across every verified problem.
 - Add more repair variants for every misconception.
 - Add mixed review sets.
 - Add application problems.

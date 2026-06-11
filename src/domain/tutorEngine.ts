@@ -113,6 +113,14 @@ export type MistakePattern = {
   repair: string
 }
 
+export type StepRubric = {
+  target: string
+  evidence: string[][]
+  detail: string
+  nextAction?: string
+  minimumEvidence?: number
+}
+
 export type Problem = {
   id: string
   conceptId: ConceptId
@@ -125,6 +133,7 @@ export type Problem = {
   hint: string
   deeperHint: string
   solutionSteps: string[]
+  stepRubric?: StepRubric[]
   checksFor: string
   mistakePatterns: MistakePattern[]
   difficulty: 1 | 2 | 3
@@ -1859,6 +1868,28 @@ export const problemBank: Problem[] = [
       'Substitute: a + 3(8 - 2a) = 7.',
       'So -5a = -17, a = 17/5, and b = 6/5.',
     ],
+    stepRubric: [
+      {
+        target: 'Use coordinates: a + 3b = 7 and 2a + b = 8.',
+        evidence: [['a + 3b = 7', 'a+3b=7'], ['2a + b = 8', '2a+b=8']],
+        detail: 'The vector equation has been split into one scalar equation per coordinate.',
+      },
+      {
+        target: 'From the second equation, b = 8 - 2a.',
+        evidence: [['b = 8 - 2a', 'b=8-2a']],
+        detail: 'One variable has been isolated so substitution is possible.',
+      },
+      {
+        target: 'Substitute: a + 3(8 - 2a) = 7.',
+        evidence: [['a + 3(8 - 2a) = 7', 'a+3(8-2a)=7']],
+        detail: 'The isolated expression is substituted into the other coordinate equation.',
+      },
+      {
+        target: 'So -5a = -17, a = 17/5, and b = 6/5.',
+        evidence: [['a = 17/5', 'a=17/5', 'a = 3.4'], ['b = 6/5', 'b=6/5', 'b = 1.2']],
+        detail: 'Both coordinate weights are solved and reported.',
+      },
+    ],
     checksFor: 'Translates a linear combination into scalar equations.',
     mistakePatterns: [
       commonMistakes.vectorEquationTranslation,
@@ -1929,6 +1960,23 @@ export const problemBank: Problem[] = [
     hint: 'Add the equations to eliminate y.',
     deeperHint: 'Adding gives 2x = 8.',
     solutionSteps: ['Add equations: 2x = 8.', 'x = 4.', 'Substitute: 4 + y = 6, so y = 2.'],
+    stepRubric: [
+      {
+        target: 'Add equations: 2x = 8.',
+        evidence: [['2x = 8', '2x=8', 'x + x = 8', 'x+x=8']],
+        detail: 'The elimination step removes y and leaves one equation in x.',
+      },
+      {
+        target: 'x = 4.',
+        evidence: [['x = 4', 'x=4']],
+        detail: 'The remaining scalar equation is solved for x.',
+      },
+      {
+        target: 'Substitute: 4 + y = 6, so y = 2.',
+        evidence: [['y = 2', 'y=2', '6 - 4', '6-4']],
+        detail: 'The solved x-value is substituted back to find y.',
+      },
+    ],
     checksFor: 'Solves a two-equation system and checks both equations.',
     mistakePatterns: [commonMistakes.sign],
     difficulty: 1,
@@ -1980,6 +2028,23 @@ export const problemBank: Problem[] = [
       'R1 is x + 2y = 5.',
       'Substitute y = 1: x + 2 = 5, so x = 3.',
     ],
+    stepRubric: [
+      {
+        target: 'R2 says y = 1.',
+        evidence: [['y = 1', 'y=1']],
+        detail: 'The pivot row is read as the value of y.',
+      },
+      {
+        target: 'R1 is x + 2y = 5.',
+        evidence: [['x + 2y = 5', 'x+2y=5']],
+        detail: 'The first row is interpreted as an equation in x and y.',
+      },
+      {
+        target: 'Substitute y = 1: x + 2 = 5, so x = 3.',
+        evidence: [['x = 3', 'x=3'], ['y = 1', 'y=1']],
+        detail: 'Back substitution gives both variable values.',
+      },
+    ],
     checksFor: 'Reads a row-reduced system correctly.',
     mistakePatterns: [commonMistakes.rowOperation, commonMistakes.sign],
     difficulty: 2,
@@ -2015,6 +2080,18 @@ export const problemBank: Problem[] = [
     hint: 'Images of basis vectors become columns.',
     deeperHint: 'The first column is T(e1); the second column is T(e2).',
     solutionSteps: ['Put T(e1) in column 1 and T(e2) in column 2.', 'The matrix is [[1, 3], [2, 4]].'],
+    stepRubric: [
+      {
+        target: 'Put T(e1) in column 1 and T(e2) in column 2.',
+        evidence: [['column 1', 'first column'], ['column 2', 'second column']],
+        detail: 'Each basis-vector image is assigned to the correct matrix column.',
+      },
+      {
+        target: 'The matrix is [[1, 3], [2, 4]].',
+        evidence: [['[[1, 3], [2, 4]]', '1 3 2 4', '1,3,2,4']],
+        detail: 'The two image columns are assembled into the transformation matrix.',
+      },
+    ],
     checksFor: 'Uses columns as images of basis vectors.',
     mistakePatterns: [commonMistakes.matrixColumnImages, commonMistakes.coordinate],
     difficulty: 2,
@@ -2073,6 +2150,18 @@ export const problemBank: Problem[] = [
     hint: 'Use (v dot u)/(u dot u) times u.',
     deeperHint: 'v dot u = 5 and u dot u = 2.',
     solutionSteps: ['Projection = (5/2)(1, 1).', 'So the projection is (5/2, 5/2).'],
+    stepRubric: [
+      {
+        target: 'Projection = (5/2)(1, 1).',
+        evidence: [['5/2', '2.5'], ['(1, 1)', '1,1']],
+        detail: 'The projection scale includes both dot products before multiplying by the direction.',
+      },
+      {
+        target: 'So the projection is (5/2, 5/2).',
+        evidence: [['5/2, 5/2', '(5/2, 5/2)', '2.5,2.5']],
+        detail: 'The scalar multiple has been converted back into vector coordinates.',
+      },
+    ],
     checksFor: 'Applies projection formula and interprets closest vector.',
     mistakePatterns: [
       commonMistakes.projectionDenominator,
@@ -2121,6 +2210,23 @@ export const problemBank: Problem[] = [
     hint: 'For [[a, b], [c, d]], use ad - bc.',
     deeperHint: 'Compute 3(4) - 2(1).',
     solutionSteps: ['Use ad - bc.', '3(4) - 2(1) = 12 - 2.', 'The determinant is 10.'],
+    stepRubric: [
+      {
+        target: 'Use ad - bc.',
+        evidence: [['ad - bc', 'ad-bc']],
+        detail: 'The determinant formula is selected in the correct order.',
+      },
+      {
+        target: '3(4) - 2(1) = 12 - 2.',
+        evidence: [['3(4) - 2(1)', '3*4-2*1'], ['12 - 2', '12-2']],
+        detail: 'The entries are substituted into ad - bc without reversing the terms.',
+      },
+      {
+        target: 'The determinant is 10.',
+        evidence: [['10', 'det = 10', 'determinant is 10']],
+        detail: 'The arithmetic gives the final determinant.',
+      },
+    ],
     checksFor: 'Computes a 2 by 2 determinant and interprets nonzero scaling.',
     mistakePatterns: [commonMistakes.determinantOrder, commonMistakes.sign],
     difficulty: 1,
@@ -2164,6 +2270,23 @@ export const problemBank: Problem[] = [
     hint: 'Use rank + nullity = number of columns.',
     deeperHint: '5 + nullity = 7.',
     solutionSteps: ['The matrix has 7 columns.', 'Use rank + nullity = 7.', '5 + nullity = 7, so nullity = 2.'],
+    stepRubric: [
+      {
+        target: 'The matrix has 7 columns.',
+        evidence: [['7 columns', 'number of columns', 'n = 7', 'n=7']],
+        detail: 'The input dimension is identified from the number of columns.',
+      },
+      {
+        target: 'Use rank + nullity = 7.',
+        evidence: [['rank + nullity = 7', 'rank+nullity=7']],
+        detail: 'Rank-nullity is written with the correct domain dimension.',
+      },
+      {
+        target: '5 + nullity = 7, so nullity = 2.',
+        evidence: [['nullity = 2', 'nullity=2'], ['5 + nullity = 7', '5+nullity=7']],
+        detail: 'The known rank is substituted and nullity is solved.',
+      },
+    ],
     checksFor: 'Uses rank-nullity with the input dimension.',
     mistakePatterns: [commonMistakes.rankNullityDomain, commonMistakes.coordinate],
     difficulty: 1,
@@ -2192,6 +2315,23 @@ export const problemBank: Problem[] = [
     hint: 'Find weights a and b so a(2,0) + b(0,3) = (6,12).',
     deeperHint: 'Solve 2a = 6 and 3b = 12.',
     solutionSteps: ['Set a(2, 0) + b(0, 3) = (6, 12).', '2a = 6, so a = 3.', '3b = 12, so b = 4. The B-coordinates are (3, 4).'],
+    stepRubric: [
+      {
+        target: 'Set a(2, 0) + b(0, 3) = (6, 12).',
+        evidence: [['a(2, 0) + b(0, 3) = (6, 12)', 'a(2,0)+b(0,3)=(6,12)']],
+        detail: 'The target vector is written as a linear combination of the basis vectors.',
+      },
+      {
+        target: '2a = 6, so a = 3.',
+        evidence: [['a = 3', 'a=3'], ['2a = 6', '2a=6']],
+        detail: 'The first basis weight is solved from the first coordinate.',
+      },
+      {
+        target: '3b = 12, so b = 4. The B-coordinates are (3, 4).',
+        evidence: [['b = 4', 'b=4'], ['(3, 4)', '3,4']],
+        detail: 'The second basis weight is solved and the coordinate vector is reported.',
+      },
+    ],
     checksFor: 'Interprets coordinates as weights in a chosen basis.',
     mistakePatterns: [commonMistakes.basisCoordinateWeights, commonMistakes.coordinate],
     difficulty: 1,
@@ -2206,6 +2346,23 @@ export const problemBank: Problem[] = [
     hint: 'Multiply A by itself and cancel the middle P inverse P pairs.',
     deeperHint: 'A^2 = P D^2 P inverse, so continue once more.',
     solutionSteps: ['A^3 = (P D P inverse)(P D P inverse)(P D P inverse).', 'Each P inverse P becomes I.', 'So A^3 = P D^3 P inverse.'],
+    stepRubric: [
+      {
+        target: 'A^3 = (P D P inverse)(P D P inverse)(P D P inverse).',
+        evidence: [['P D P inverse', 'PDP inverse'], ['A^3', 'A3']],
+        detail: 'The power is expanded using repeated copies of the diagonalization.',
+      },
+      {
+        target: 'Each P inverse P becomes I.',
+        evidence: [['P inverse P', 'P^-1P'], ['I', 'identity']],
+        detail: 'Only adjacent middle inverse pairs are cancelled.',
+      },
+      {
+        target: 'So A^3 = P D^3 P inverse.',
+        evidence: [['P D^3 P inverse', 'PD^3P inverse', 'P D cubed P inverse']],
+        detail: 'The outside change-of-basis factors remain around the diagonal power.',
+      },
+    ],
     checksFor: 'Uses diagonalization to simplify matrix powers.',
     mistakePatterns: [commonMistakes.diagonalCancellation, commonMistakes.coordinate],
     difficulty: 2,
@@ -2220,6 +2377,23 @@ export const problemBank: Problem[] = [
     hint: 'Start with the subspace definition.',
     deeperHint: 'You need zero plus two closure properties.',
     solutionSteps: ['Show the zero vector is in W.', 'Show if u and v are in W, then u + v is in W.', 'Show if c is a scalar and u is in W, then cu is in W.'],
+    stepRubric: [
+      {
+        target: 'Show the zero vector is in W.',
+        evidence: [['zero vector', '0 in W', '0 is in W']],
+        detail: 'The proof starts by checking that W contains the zero vector.',
+      },
+      {
+        target: 'Show if u and v are in W, then u + v is in W.',
+        evidence: [['u + v', 'u+v'], ['addition', 'closed under addition']],
+        detail: 'Addition closure is stated for arbitrary vectors in W.',
+      },
+      {
+        target: 'Show if c is a scalar and u is in W, then cu is in W.',
+        evidence: [['cu', 'c u'], ['scalar', 'scalar multiplication']],
+        detail: 'Scalar closure is stated for an arbitrary scalar and vector in W.',
+      },
+    ],
     checksFor: 'Uses definitions to structure a proof.',
     mistakePatterns: [commonMistakes.proofClosure, commonMistakes.spanCount],
     difficulty: 1,
@@ -2712,9 +2886,6 @@ export const evaluateResponse = (problem: Problem, response: string): LiveFeedba
   }
 }
 
-export const getWorkStepTargets = (problem: Problem) =>
-  problem.solutionSteps.length ? problem.solutionSteps : [problem.deeperHint]
-
 const stopWords = new Set([
   'a',
   'an',
@@ -2746,6 +2917,44 @@ const meaningfulTokens = (value: string) =>
     .split(/[^a-z0-9/.-]+/)
     .filter((token) => token.length > 1 && !stopWords.has(token))
 
+const defaultStepRubrics = (problem: Problem): StepRubric[] => {
+  const targets = problem.solutionSteps.length ? problem.solutionSteps : [problem.deeperHint]
+  return targets.map((target) => {
+    const evidence = meaningfulTokens(target).map((token) => [token])
+    return {
+      target,
+      evidence,
+      detail: `This step should support: ${problem.checksFor}`,
+      nextAction: target,
+      minimumEvidence: Math.min(3, Math.max(1, Math.ceil(evidence.length * 0.35))),
+    }
+  })
+}
+
+const getStepRubrics = (problem: Problem) =>
+  problem.stepRubric?.length ? problem.stepRubric : defaultStepRubrics(problem)
+
+export const getWorkStepTargets = (problem: Problem) =>
+  getStepRubrics(problem).map((rubric) => rubric.target)
+
+const evidenceChoiceMatches = (response: string, choice: string) => {
+  const normalizedResponse = normalize(response)
+  const normalizedChoice = normalize(choice)
+  const compactedResponse = compact(response)
+  const compactedChoice = compact(choice)
+
+  return (
+    normalizedResponse.includes(normalizedChoice) ||
+    compactedResponse.includes(compactedChoice)
+  )
+}
+
+const evidenceMatches = (response: string, evidenceGroup: string[]) =>
+  evidenceGroup.some((choice) => evidenceChoiceMatches(response, choice))
+
+const matchedEvidenceCount = (response: string, rubric: StepRubric) =>
+  rubric.evidence.filter((evidenceGroup) => evidenceMatches(response, evidenceGroup)).length
+
 const misconceptionFromTriggers = (problem: Problem, value: string) => {
   const normalizedValue = normalize(value)
   return problem.mistakePatterns.find((mistake) =>
@@ -2757,12 +2966,10 @@ const classifyWorkStepMisconception = (
   problem: Problem,
   response: string,
   expected: string,
+  includeFallback = true,
 ) => {
   const normalizedResponse = normalize(response)
   const normalizedExpected = normalize(expected)
-  const triggerMatch = misconceptionFromTriggers(problem, response)
-
-  if (triggerMatch) return triggerMatch
 
   if (
     normalizedExpected.includes('add') &&
@@ -2942,16 +3149,21 @@ const classifyWorkStepMisconception = (
     return commonMistakes.proofClosure
   }
 
-  return commonMistakes.setupMismatch
+  const triggerMatch = misconceptionFromTriggers(problem, response)
+
+  if (triggerMatch) return triggerMatch
+
+  return includeFallback ? commonMistakes.setupMismatch : undefined
 }
 
 const evaluateWorkStep = (
   problem: Problem,
   response: string,
-  expected: string,
+  rubric: StepRubric,
   index: number,
 ): WorkStepFeedback => {
   const normalizedResponse = normalize(response)
+  const expected = rubric.target
 
   if (!normalizedResponse) {
     return {
@@ -2964,26 +3176,31 @@ const evaluateWorkStep = (
     }
   }
 
-  const responseCompact = compact(response)
-  const expectedCompact = compact(expected)
-  const responseTokens = new Set(meaningfulTokens(response))
-  const expectedTokens = meaningfulTokens(expected)
-  const overlap = expectedTokens.filter((token) => responseTokens.has(token)).length
-  const requiredOverlap = Math.min(
-    3,
-    Math.max(1, Math.ceil(Math.max(expectedTokens.length, 1) * 0.35)),
-  )
-  const compactMatch =
-    responseCompact.length >= 4 &&
-    (expectedCompact.includes(responseCompact) || responseCompact.includes(expectedCompact))
+  const specificMisconception = classifyWorkStepMisconception(problem, response, expected, false)
 
-  if (compactMatch || overlap >= requiredOverlap) {
+  if (specificMisconception) {
+    return {
+      index,
+      response,
+      expected,
+      status: 'needs-work',
+      detail: `${specificMisconception.label}: ${specificMisconception.feedback}`,
+      nextAction: specificMisconception.repair,
+      misconception: specificMisconception,
+    }
+  }
+
+  const evidenceMatched = matchedEvidenceCount(response, rubric)
+  const requiredEvidence =
+    rubric.minimumEvidence ?? Math.max(1, rubric.evidence.length)
+
+  if (evidenceMatched >= requiredEvidence) {
     return {
       index,
       response,
       expected,
       status: 'on-track',
-      detail: `Step ${index + 1} lines up with the solution path.`,
+      detail: `Step ${index + 1}: ${rubric.detail}`,
       nextAction:
         index === getWorkStepTargets(problem).length - 1
           ? 'Use this work to write the final answer.'
@@ -2991,15 +3208,19 @@ const evaluateWorkStep = (
     }
   }
 
-  const misconception = classifyWorkStepMisconception(problem, response, expected)
+  const misconception =
+    classifyWorkStepMisconception(problem, response, expected) ?? commonMistakes.setupMismatch
 
   return {
     index,
     response,
     expected,
     status: 'needs-work',
-    detail: `${misconception.label}: ${misconception.feedback}`,
-    nextAction: misconception.repair,
+    detail:
+      evidenceMatched > 0
+        ? `Step ${index + 1} has ${evidenceMatched}/${requiredEvidence} rubric signals. ${misconception.feedback}`
+        : `${misconception.label}: ${misconception.feedback}`,
+    nextAction: rubric.nextAction ?? misconception.repair,
     misconception,
   }
 }
@@ -3008,9 +3229,10 @@ export const evaluateWorkSteps = (
   problem: Problem,
   workSteps: string[] = [],
 ): WorkStepReport => {
-  const targets = getWorkStepTargets(problem)
-  const feedback = targets.map((target, index) =>
-    evaluateWorkStep(problem, workSteps[index] ?? '', target, index),
+  const rubrics = getStepRubrics(problem)
+  const targets = rubrics.map((rubric) => rubric.target)
+  const feedback = rubrics.map((rubric, index) =>
+    evaluateWorkStep(problem, workSteps[index] ?? '', rubric, index),
   )
   const answered = feedback.filter((step) => step.response.trim()).length
   const onTrack = feedback.filter((step) => step.status === 'on-track').length

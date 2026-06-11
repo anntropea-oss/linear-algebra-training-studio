@@ -110,6 +110,21 @@ describe('evaluateMathAnswer', () => {
     assert.equal(report.headline, 'Work path is coherent')
   })
 
+  it('uses rubric evidence instead of token overlap for work steps', () => {
+    const report = evaluateWorkSteps(getProblem('sys-1'), ['Add the equations.'])
+
+    assert.equal(report.headline, 'Repair step 1')
+    assert.equal(report.feedback[0].status, 'needs-work')
+    assert.equal(report.misconception?.pattern.id, 'setup-mismatch')
+  })
+
+  it('accepts concise mathematical evidence in rubric-scored steps', () => {
+    const report = evaluateWorkSteps(getProblem('sys-1'), ['2x=8', 'x=4', 'y=2'])
+
+    assert.equal(report.headline, 'Work path is coherent')
+    assert.equal(report.onTrack, 3)
+  })
+
   it('flags the first drifting work step', () => {
     const report = evaluateWorkSteps(getProblem('sys-1'), ['Subtract the equations.'])
 
@@ -125,6 +140,26 @@ describe('evaluateMathAnswer', () => {
 
     assert.equal(report.headline, 'Repair step 1')
     assert.equal(report.misconception?.pattern.id, 'rank-nullity-domain')
+  })
+
+  it('checks rubric misconceptions before accepting shared step tokens', () => {
+    const report = evaluateWorkSteps(getProblem('mat-2'), [
+      'Put T(e1) and T(e2) in rows.',
+    ])
+
+    assert.equal(report.headline, 'Repair step 1')
+    assert.equal(report.misconception?.pattern.id, 'basis-images-as-columns')
+  })
+
+  it('uses proof rubrics for definition-level work', () => {
+    const report = evaluateWorkSteps(getProblem('proof-1'), [
+      'Verify the zero vector is in W.',
+      'Check closure under addition for u+v.',
+      'Check scalar multiplication closure for cu.',
+    ])
+
+    assert.equal(report.headline, 'Work path is coherent')
+    assert.equal(report.onTrack, 3)
   })
 
   it('stores submitted work steps with the attempt record', () => {
