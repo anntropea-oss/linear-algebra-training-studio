@@ -525,3 +525,27 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Resolved
 - Verification: The corrected loop checked all README planning-document target URLs successfully.
+
+## [2026-06-11 13:05] Step Feedback Relied On Token Overlap
+- Problem: Multi-step work could be marked on track when it shared words with a verified solution step but did not contain the mathematical evidence the step needed.
+- Root Cause: `evaluateWorkStep` scored step work through normalized token overlap and compact string matching, with misconception triggers layered on afterward.
+- Solution: Added `StepRubric` definitions with evidence groups, rubric details, and per-step next actions; updated work-step evaluation to use explicit rubric evidence before falling back to generated default rubrics; and added representative rubrics across coordinate setup, elimination, row reading, matrix construction, determinants, projections, rank-nullity, basis coordinates, diagonalization, and proof checks.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms rubric evidence rejects a vague overlapping step, accepts concise mathematical evidence, and keeps coherent proof work on track.
+
+## [2026-06-11 13:05] Generic Step Triggers Shadowed Specific Rubrics
+- Problem: A matrix-construction step that put basis-vector images in rows was still classified as a generic coordinate mix-up instead of the more precise basis-images-as-columns misconception.
+- Root Cause: `classifyWorkStepMisconception` checked generic problem trigger matches before concept-specific work-step rules.
+- Solution: Reordered work-step misconception classification so concept-specific rules run before generic trigger matching.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms row-placement work for `mat-2` now reports `basis-images-as-columns`.
+
+## [2026-06-11 13:08] No Automated PR Checks Reported For Step Rubrics PR
+- Problem: GitHub reported no automated checks for PR #18, so validation for the step-rubrics branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, and diff verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 18` returned `no checks reported on the 'codex/phase-2-step-rubrics' branch`.

@@ -81,6 +81,6 @@ The course map now includes the topics a first serious linear algebra course exp
 - Matrix-specific answer checking.
 - More concept-specific misconceptions.
 - Problem variants that adapt difficulty within a session.
-- A way for learners to enter multi-step work, not just final answers.
+- More instructor-reviewed step rubrics for advanced topics and transfer problems.
 - A backend AI layer that can explain verified steps without inventing math.
 - More robust lesson sequencing with short checks for understanding before unlocking practice.
