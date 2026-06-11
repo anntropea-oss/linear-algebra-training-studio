@@ -541,3 +541,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test` confirms row-placement work for `mat-2` now reports `basis-images-as-columns`.
+
+## [2026-06-11 13:08] No Automated PR Checks Reported For Step Rubrics PR
+- Problem: GitHub reported no automated checks for PR #18, so validation for the step-rubrics branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, and diff verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 18` returned `no checks reported on the 'codex/phase-2-step-rubrics' branch`.
