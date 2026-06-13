@@ -669,3 +669,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 21` returned `no checks reported on the 'codex/setup-github-pages' branch`.
+
+## [2026-06-13 13:54] Pages Workflow Warned About Node 20 Actions
+- Problem: The first successful GitHub Pages deployment emitted a warning that a nested artifact action was still running on Node 20, which GitHub will force to Node 24 by default on June 16, 2026.
+- Root Cause: `actions/upload-pages-artifact@v4` invokes an artifact action that GitHub reported as Node 20-based during the Pages build.
+- Solution: Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` to the Pages workflow environment so JavaScript actions opt into Node 24 now.
+- Files Changed: `.github/workflows/pages.yml`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The original Pages run completed successfully but showed the warning; the follow-up workflow change opts into the recommended Node 24 runtime.
