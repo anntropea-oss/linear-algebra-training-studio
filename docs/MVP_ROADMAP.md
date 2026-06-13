@@ -14,6 +14,7 @@ Status: current app
 - AI-style guide reveals solution steps progressively when the learner is stuck.
 - Submissions update mastery, confidence, support used, attempts, activity, and repair queue.
 - The concept map now covers the major university-level linear algebra arc.
+- GitHub Pages publishes a standing public demo from `main`.
 
 ## Phase 2: Math-Aware Checking
 
@@ -58,6 +59,13 @@ Status: started
 - Store learner records in a backend database.
 - Sync active sets across devices.
 - Export progress reports.
+
+## Phase 4A: Installable App Shell
+
+- Add a web app manifest and install icons.
+- Add offline-safe static assets after the data model settles.
+- Add service-worker caching once update behavior is predictable.
+- Evaluate native wrappers after the PWA version is stable.
 
 ## Phase 5: AI-Assisted Coaching
 

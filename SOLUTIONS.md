@@ -653,3 +653,19 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 20` returned `no checks reported on the 'codex/phase-2-rubric-calibration' branch`.
+
+## [2026-06-13 13:51] GitHub Pages Was Not Enabled
+- Problem: The repository did not have an active GitHub Pages site, so the planned public demo URL could not deploy yet.
+- Root Cause: Pages had not been configured for the repository; `gh api repos/anntropea-oss/linear-algebra-training-studio/pages` returned HTTP 404.
+- Solution: Enabled GitHub Pages with GitHub Actions as the build type and set the repository homepage to `https://anntropea-oss.github.io/linear-algebra-training-studio/`.
+- Files Changed: `.github/workflows/pages.yml`, `package.json`, `README.md`, `docs/GITHUB_PAGES_DEPLOYMENT.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `gh api --method POST repos/anntropea-oss/linear-algebra-training-studio/pages -f build_type=workflow` returned the Pages configuration with `build_type: workflow`, `public: true`, and HTTPS enforced; `gh repo view --json homepageUrl` returned the public demo URL.
+
+## [2026-06-13 13:53] No Automated PR Checks Reported For GitHub Pages PR
+- Problem: GitHub reported no automated checks for PR #21, so validation for the GitHub Pages setup branch depends on local verification before merge and the post-merge Pages deployment run.
+- Root Cause: The new Pages workflow deploys on pushes to `main`; it does not run for pull requests.
+- Solution: Logged the PR-specific limitation and used local install, test, Pages build, lint, and diff verification before merge.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 21` returned `no checks reported on the 'codex/setup-github-pages' branch`.
