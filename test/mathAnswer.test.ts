@@ -162,6 +162,27 @@ describe('evaluateMathAnswer', () => {
     assert.equal(report.onTrack, 3)
   })
 
+  it('has explicit step rubrics for every verified problem', () => {
+    for (const problem of problemBank) {
+      assert.equal(
+        problem.stepRubric?.length,
+        problem.solutionSteps.length,
+        `${problem.id} should have one rubric per solution step`,
+      )
+    }
+  })
+
+  it('distinguishes partial rubric progress from wrong-direction work', () => {
+    const report = evaluateWorkSteps(getProblem('vec-2'), ['4e1 - 2e2'])
+
+    assert.equal(report.headline, 'Refine step 1')
+    assert.equal(report.partial, 1)
+    assert.equal(report.feedback[0].status, 'partial')
+    assert.equal(report.feedback[0].rubricScore, 2)
+    assert.equal(report.feedback[0].rubricRequired, 3)
+    assert.equal(report.misconception, undefined)
+  })
+
   it('stores submitted work steps with the attempt record', () => {
     const profile = createLearnerProfile('systems')
     const activeSet = profile.problemSets[0]
@@ -176,6 +197,18 @@ describe('evaluateMathAnswer', () => {
     ])
     assert.deepEqual(activeSet.progress['sys-1'].workSteps, [])
     assert.equal(nextProfile.problemSets[0].progress['sys-1'].workSteps[1], 'x = 4.')
+  })
+
+  it('does not log partial work as a misconception when the final answer is correct', () => {
+    const profile = createLearnerProfile('vectors')
+    const activeSet = profile.problemSets[0]
+    const nextProfile = submitResponse(profile, activeSet.id, 'vec-2', '4e1 - 2e2 + 5e3', {
+      workSteps: ['4e1 - 2e2'],
+    })
+
+    assert.equal(nextProfile.attempts[0].misconceptionId, undefined)
+    assert.equal(nextProfile.attempts[0].feedback.includes('1 partial'), true)
+    assert.equal(nextProfile.mistakes.length, 0)
   })
 
   it('logs step misconceptions even when the final answer is correct', () => {

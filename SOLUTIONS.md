@@ -549,3 +549,51 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 18` returned `no checks reported on the 'codex/phase-2-step-rubrics' branch`.
+
+## [2026-06-13 10:44] Step Rubric Coverage Was Incomplete
+- Problem: Many verified and repair-only problems still depended on generated fallback step rubrics instead of instructor-authored evidence rubrics.
+- Root Cause: The previous milestone added representative concept-specific rubrics but did not cover every problem in `problemBank`.
+- Solution: Added a keyed step-rubric library for every remaining verified problem and enriched `problemBank` so each problem now has one explicit rubric per solution step.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` includes `has explicit step rubrics for every verified problem`, which checks that every `problemBank` item has rubric coverage matching its solution steps.
+
+## [2026-06-13 10:44] Work Step Feedback Could Not Distinguish Partial From Wrong Direction
+- Problem: Work-step feedback only had `on-track` and `needs-work` outcomes, so an almost-complete step could be treated like a misconception or wrong-direction setup.
+- Root Cause: Step evaluation used matched evidence counts without weighted scores, score thresholds, or a distinct partial status.
+- Solution: Added rubric weights, required scores, partial thresholds, score metadata, a `partial` work-step state, partial-aware summaries, partial UI styling, and tests proving partial work does not create a misconception record when the final answer is correct.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/App.css`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` includes `distinguishes partial rubric progress from wrong-direction work` and `does not log partial work as a misconception when the final answer is correct`.
+
+## [2026-06-13 10:44] Rubric Library Indexing Failed TypeScript
+- Problem: The first test run failed with `TS7053` when enriching `problemBank` from `stepRubricLibrary[problem.id]`.
+- Root Cause: `stepRubricLibrary` used `satisfies Partial<Record<string, StepRubric[]>>`, preserving literal keys without a string index signature for arbitrary problem ids.
+- Solution: Gave `stepRubricLibrary` an explicit `Partial<Record<string, StepRubric[]>>` type annotation so indexing by `problem.id` is type-safe.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passed after the type annotation change.
+
+## [2026-06-13 10:44] Verification Probes Used Stale Paths And Unsafe Shell Quoting
+- Problem: Early verification probes failed with `zsh:1: bad substitution` for a Node one-liner and `rg` errors for root-level planning-doc paths that now live under `docs/`.
+- Root Cause: The Node one-liner put a JavaScript template literal inside a double-quoted zsh command, and the file search included stale root paths for planning documents.
+- Solution: Reran the Node probe with safe single-quoted JavaScript and used `rg --files` plus the actual `docs/` paths for planning-document inspection.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The corrected Node probe printed rubric coverage counts, and subsequent `rg`/`sed` reads succeeded against the actual repository paths.
+
+## [2026-06-13 10:44] Browser Smoke Test Ran Before Dev Server Was Available
+- Problem: The in-app browser could not load `http://127.0.0.1:5173/`, and `curl -I http://127.0.0.1:5173/` failed to connect because nothing was serving that port.
+- Root Cause: The local Vite dev server was not running when browser verification started.
+- Solution: Started `npm run dev -- --host 127.0.0.1` and reloaded the app through the in-app browser.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The in-app browser loaded the Linear Algebra Live Tutor page after the dev server started.
+
+## [2026-06-13 10:44] Browser Automation Reused A Persistent Variable Name
+- Problem: A browser automation cell failed with `Identifier 'text' has already been declared`.
+- Root Cause: The browser control runtime keeps top-level JavaScript bindings between calls, and the smoke-test script reused a previous `const text` binding.
+- Solution: Reran the smoke-test script with fresh `var` bindings for the temporary textarea and body-text variables.
+- Files Changed: `SOLUTIONS.md`
+- Status: Resolved
+- Verification: The corrected browser script submitted the current visible problem and confirmed the app continued rendering.
