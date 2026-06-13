@@ -7,6 +7,8 @@ import {
   createLearnerProfile,
   evaluateResponse,
   evaluateWorkSteps,
+  getRubricCalibrationCases,
+  getRubricCalibrationSummary,
   getProblem,
   problemBank,
   submitResponse,
@@ -113,9 +115,9 @@ describe('evaluateMathAnswer', () => {
   it('uses rubric evidence instead of token overlap for work steps', () => {
     const report = evaluateWorkSteps(getProblem('sys-1'), ['Add the equations.'])
 
-    assert.equal(report.headline, 'Repair step 1')
+    assert.equal(report.headline, 'Revise step 1')
     assert.equal(report.feedback[0].status, 'needs-work')
-    assert.equal(report.misconception?.pattern.id, 'setup-mismatch')
+    assert.equal(report.misconception, undefined)
   })
 
   it('accepts concise mathematical evidence in rubric-scored steps', () => {
@@ -211,6 +213,17 @@ describe('evaluateMathAnswer', () => {
     assert.equal(nextProfile.mistakes.length, 0)
   })
 
+  it('does not log missing evidence as a misconception when the final answer is correct', () => {
+    const profile = createLearnerProfile('systems')
+    const activeSet = profile.problemSets[0]
+    const nextProfile = submitResponse(profile, activeSet.id, 'sys-1', 'x = 4, y = 2', {
+      workSteps: ['Add the equations.'],
+    })
+
+    assert.equal(nextProfile.attempts[0].misconceptionId, undefined)
+    assert.equal(nextProfile.mistakes.length, 0)
+  })
+
   it('logs step misconceptions even when the final answer is correct', () => {
     const profile = createLearnerProfile('systems')
     const activeSet = profile.problemSets[0]
@@ -293,5 +306,65 @@ describe('evaluateMathAnswer', () => {
     const repairedProfile = addProblemSet(profileWithLegacyRepair, 'repair')
 
     assert.equal(repairedProfile.problemSets[0].repairFocus?.misconceptionId, 'sign-slip')
+  })
+
+  it('validates rubric calibration samples across every problem', () => {
+    const cases = getRubricCalibrationCases()
+    const expectedKinds = ['almost-complete', 'complete', 'missing-evidence', 'wrong-direction']
+
+    for (const problem of problemBank) {
+      const problemCases = cases.filter((calibrationCase) => calibrationCase.problemId === problem.id)
+
+      assert.deepEqual(
+        problemCases.map((calibrationCase) => calibrationCase.kind).sort(),
+        expectedKinds,
+        `${problem.id} should have four rubric calibration samples`,
+      )
+    }
+
+    for (const calibrationCase of cases) {
+      const report = evaluateWorkSteps(getProblem(calibrationCase.problemId), calibrationCase.workSteps)
+      const { expected } = calibrationCase
+
+      assert.equal(
+        report.headline.startsWith(expected.headlineStartsWith),
+        true,
+        `${calibrationCase.problemId} ${calibrationCase.kind} headline should start with ${expected.headlineStartsWith}`,
+      )
+      assert.equal(
+        report.partial,
+        expected.partial,
+        `${calibrationCase.problemId} ${calibrationCase.kind} partial count`,
+      )
+
+      if (expected.stepIndex !== undefined && expected.status) {
+        assert.equal(
+          report.feedback[expected.stepIndex].status,
+          expected.status,
+          `${calibrationCase.problemId} ${calibrationCase.kind} step status`,
+        )
+      } else {
+        assert.equal(
+          report.feedback.every((step) => step.status === 'on-track'),
+          true,
+          `${calibrationCase.problemId} ${calibrationCase.kind} should keep every step on track`,
+        )
+      }
+
+      assert.equal(
+        report.misconception?.pattern.id,
+        expected.misconceptionId,
+        `${calibrationCase.problemId} ${calibrationCase.kind} misconception`,
+      )
+    }
+  })
+
+  it('summarizes rubric calibration coverage for audit views', () => {
+    const summary = getRubricCalibrationSummary()
+
+    assert.equal(summary.problemCount, problemBank.length)
+    assert.equal(summary.caseCount, problemBank.length * summary.casesPerProblem)
+    assert.equal(summary.misconceptionCaseCount, problemBank.length)
+    assert.ok(summary.partialCaseCount > 0)
   })
 })

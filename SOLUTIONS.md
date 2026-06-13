@@ -605,3 +605,51 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 19` returned `no checks reported on the 'codex/phase-2-weighted-step-rubrics' branch`.
+
+## [2026-06-13 11:15] Missing Evidence Entered The Repair Queue
+- Problem: Vague work-step text that lacked rubric evidence could create a `setup-mismatch` misconception record, even when the final answer was correct.
+- Root Cause: `evaluateWorkStep` used the setup-mismatch fallback both as guidance and as a logged misconception.
+- Solution: Kept missing-evidence feedback as `needs-work` with a `Revise step` headline, but only attaches a misconception when a specific misconception trigger is present.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` includes `does not log missing evidence as a misconception when the final answer is correct`.
+
+## [2026-06-13 11:15] Rubrics Lacked Sample-Response Calibration
+- Problem: The app had full rubric coverage, but there was no systematic sample-response validation proving each rubric handled complete, almost-complete, missing-evidence, and wrong-direction work.
+- Root Cause: Previous tests covered representative examples rather than a calibration matrix for every problem.
+- Solution: Added rubric calibration case generation, an audit summary, and tests that validate four sample work cases for each of the 40 verified problems.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `README.md`, `docs/MVP_ROADMAP.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/PEDAGOGY_NOTES.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms 160 calibration cases across 40 problems, including 37 partial cases and 40 misconception cases.
+
+## [2026-06-13 11:15] Verified Solution Text Failed Its Own Rubrics
+- Problem: The new calibration suite failed because `span-1` and `proof-1` complete solution paths were not accepted by their own rubric evidence.
+- Root Cause: Those rubrics required alternate words such as `same direction`, `multiples`, or `addition` that the verified solution targets did not always include.
+- Solution: Added matching evidence phrases from the verified targets (`combinations` and `u and v are in W`) so complete solution paths score on track.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` now passes `validates rubric calibration samples across every problem`.
+
+## [2026-06-13 11:15] Valid Column Language Triggered Coordinate Misconceptions
+- Problem: Valid work steps that mentioned `column`, such as matrix column placement or rank-nullity column counts, could be marked as coordinate mix-ups.
+- Root Cause: The generic coordinate misconception trigger treated `column` as suspicious before considering that the rubric itself may require column language.
+- Solution: Allowed evidence-backed coordinate language to continue into rubric scoring instead of immediately becoming a coordinate misconception.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms complete calibration samples for matrix and rank-nullity problems stay on track while row-placement misconceptions still trigger repair.
+
+## [2026-06-13 11:15] Single-Character Evidence Matched Inside Ordinary Words
+- Problem: A one-character rubric evidence token such as `b` could match inside unrelated words like `because`, inflating rubric scores for wrong-direction work.
+- Root Cause: `evidenceChoiceMatches` used substring and compact-string matching for all evidence choices, including single alphanumeric tokens.
+- Solution: Required single-character alphanumeric evidence to match as its own token boundary before falling back to broader substring matching for longer evidence.
+- Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` confirms the least-squares wrong-direction calibration case now triggers residual-orthogonality repair instead of scoring on track.
+
+## [2026-06-13 11:16] No Automated PR Checks Reported For Rubric Calibration PR
+- Problem: GitHub reported no automated checks for PR #20, so validation for the rubric-calibration branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, and diff verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 20` returned `no checks reported on the 'codex/phase-2-rubric-calibration' branch`.

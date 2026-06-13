@@ -26,6 +26,7 @@ npm run build:pages
 - Enter step-by-step work and get step-level feedback.
 - Grade multi-step work with concept-specific weighted step rubrics.
 - Distinguish almost-complete work from wrong-direction work.
+- Validate rubric behavior with sample student responses for every problem.
 - Tag misconception patterns and create targeted repair sets.
 - Practice repair-only variants matched to the active misconception.
 - Ask for AI-style guided steps when you do not know how to start.
@@ -49,7 +50,7 @@ Continue Phase 2 math-aware checking and richer problem authoring:
 - diagnostic-driven prerequisite repair
 - expanded starter problems for every university-level concept
 - more vector, matrix, and equation equivalence checks
-- calibration data for rubric weights and partial thresholds
+- real learner data to refine rubric weights and partial thresholds
 - larger verified problem bank
 - more repair variants for advanced misconceptions
 - adaptive difficulty within each active set
