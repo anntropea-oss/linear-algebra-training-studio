@@ -499,6 +499,10 @@ textarea {
   border-color: #0f766e;
 }
 
+.work-step-row.partial {
+  border-color: #d97706;
+}
+
 .work-step-row.needs-work {
   border-color: #be123c;
 }
@@ -636,6 +640,10 @@ button:disabled {
 
 .step-feedback-list div.on-track {
   border-color: #0f766e;
+}
+
+.step-feedback-list div.partial {
+  border-color: #d97706;
 }
 
 .step-feedback-list div.needs-work {

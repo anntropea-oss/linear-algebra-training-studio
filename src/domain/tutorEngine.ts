@@ -119,6 +119,9 @@ export type StepRubric = {
   detail: string
   nextAction?: string
   minimumEvidence?: number
+  weights?: number[]
+  minimumScore?: number
+  partialThreshold?: number
 }
 
 export type Problem = {
@@ -248,7 +251,7 @@ export type GuidedSolution = {
   completed: boolean
 }
 
-export type WorkStepStatus = 'empty' | 'on-track' | 'needs-work'
+export type WorkStepStatus = 'empty' | 'partial' | 'on-track' | 'needs-work'
 
 export type WorkStepFeedback = {
   index: number
@@ -257,6 +260,9 @@ export type WorkStepFeedback = {
   status: WorkStepStatus
   detail: string
   nextAction: string
+  rubricScore: number
+  rubricMax: number
+  rubricRequired: number
   misconception?: MistakePattern
 }
 
@@ -267,6 +273,7 @@ export type WorkStepReport = {
   nextAction: string
   answered: number
   onTrack: number
+  partial: number
   total: number
   feedback: WorkStepFeedback[]
   misconception?: {
@@ -1852,7 +1859,7 @@ const commonMistakes = {
   },
 } satisfies Record<string, MistakePattern>
 
-export const problemBank: Problem[] = [
+const baseProblemBank: Problem[] = [
   {
     id: 'vec-1',
     conceptId: 'vectors',
@@ -2694,6 +2701,539 @@ export const problemBank: Problem[] = [
   },
 ]
 
+const stepRubricLibrary: Partial<Record<string, StepRubric[]>> = {
+  'vec-2': [
+    {
+      target: '(4, -2, 5) = 4e1 - 2e2 + 5e3.',
+      evidence: [
+        ['4e1', '4 e1'],
+        ['-2e2', '-2 e2'],
+        ['5e3', '5 e3'],
+      ],
+      detail: 'Each coordinate has been written as the weight on its matching standard basis vector.',
+      minimumScore: 3,
+      partialThreshold: 2,
+    },
+  ],
+  'span-1': [
+    {
+      target: '(2, 4) = 2(1, 2) and (3, 6) = 3(1, 2).',
+      evidence: [
+        ['(2, 4) = 2(1, 2)', '2(1, 2)', '2(1,2)'],
+        ['(3, 6) = 3(1, 2)', '3(1, 2)', '3(1,2)'],
+      ],
+      detail: 'The repeated direction is shown by writing the other vectors as multiples of (1, 2).',
+    },
+    {
+      target: 'All combinations stay on one line.',
+      evidence: [['line', 'one line'], ['same direction', 'multiples']],
+      detail: 'The span is recognized as one direction rather than a full plane.',
+    },
+    {
+      target: 'They span a line, not all of R2.',
+      evidence: [['not all of R2', 'not all r2', 'not R2'], ['span a line', 'line only']],
+      detail: 'The conclusion distinguishes a one-dimensional span from all of R2.',
+    },
+  ],
+  'span-2': [
+    {
+      target: 'The third vector equals the sum of the first two.',
+      evidence: [
+        ['third', 'v3'],
+        ['sum', 'v1 + v2', 'v1+v2'],
+      ],
+      detail: 'The redundant vector is identified as a combination of the first two vectors.',
+    },
+    {
+      target: 'That gives a nontrivial dependence relation.',
+      evidence: [['nontrivial', 'not all zero'], ['dependence relation', 'dependent relation']],
+      detail: 'A dependence relation is named rather than inferred from the number of vectors alone.',
+    },
+    {
+      target: 'So the vectors are linearly dependent.',
+      evidence: [['dependent', 'linearly dependent']],
+      detail: 'The final independence decision follows from the found relation.',
+    },
+  ],
+  'sys-2': [
+    {
+      target: 'The left side of the second equation is twice the first.',
+      evidence: [
+        ['twice the first', 'double the first', '2 times the first'],
+        ['left side', '2x + 4y', '2x+4y'],
+      ],
+      detail: 'The equations are compared structurally before solving.',
+    },
+    {
+      target: 'But the right side is 8 instead of 6.',
+      evidence: [['8'], ['6'], ['right side']],
+      detail: 'The inconsistent constants are identified.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'The equations contradict each other, so there is no solution.',
+      evidence: [['contradict', 'inconsistent'], ['no solution', 'none']],
+      detail: 'The contradiction is translated into the correct solution count.',
+    },
+  ],
+  'row-1': [
+    {
+      target: 'A column without a pivot corresponds to a free variable.',
+      evidence: [['without a pivot', 'no pivot', 'non-pivot'], ['free variable', 'free', 'parameter']],
+      detail: 'The missing pivot is connected to a variable that can be chosen freely.',
+    },
+  ],
+  'mat-1': [
+    {
+      target: '[[2, 0], [0, 3]](x, y) = (2x, 3y).',
+      evidence: [['2x'], ['3y']],
+      detail: 'The diagonal matrix is interpreted as scaling each coordinate separately.',
+    },
+  ],
+  'sub-1': [
+    {
+      target: 'Every subspace must contain the zero vector.',
+      evidence: [['zero vector', '(0, 0)', '0 vector'], ['subspace']],
+      detail: 'The zero-vector requirement is used as the first subspace test.',
+    },
+    {
+      target: '(0, 0) is not in this set.',
+      evidence: [['(0, 0)', '0,0'], ['not in', 'does not satisfy', 'not satisfy'], ['x + y = 1', 'x+y=1', '0 + 0 = 0']],
+      detail: 'The zero vector is tested against the defining equation.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'So it is not a subspace.',
+      evidence: [['not a subspace', 'not subspace', 'no']],
+      detail: 'The failed zero-vector test is converted into the subspace conclusion.',
+    },
+  ],
+  'sub-2': [
+    {
+      target: '(2, 4) is redundant.',
+      evidence: [['(2, 4)', '2,4'], ['redundant', '2(1, 2)', '2(1,2)']],
+      detail: 'The repeated direction is removed before choosing a basis.',
+    },
+    {
+      target: '(1, 2) and (0, 1) are independent.',
+      evidence: [['(1, 2)', '1,2'], ['(0, 1)', '0,1'], ['independent']],
+      detail: 'The remaining vectors are checked as independent directions.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'One basis is {(1, 2), (0, 1)}.',
+      evidence: [['basis'], ['(1, 2)', '1,2'], ['(0, 1)', '0,1']],
+      detail: 'The basis is reported with the redundant vector removed.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+  ],
+  'orth-1': [
+    {
+      target: '2(1) + (-1)(2) + 3(0) = 2 - 2 + 0 = 0.',
+      evidence: [
+        ['2(1)', '2 * 1', '2*1'],
+        ['(-1)(2)', '-1(2)', '-1 * 2', '-1*2'],
+        ['3(0)', '3 * 0', '3*0'],
+        ['= 0', '0'],
+      ],
+      detail: 'The dot product entries are multiplied and summed to get zero.',
+      minimumScore: 3,
+      partialThreshold: 2,
+    },
+    {
+      target: 'Dot product 0 means orthogonal.',
+      evidence: [['dot product 0', 'dot product is 0', '0'], ['orthogonal', 'perpendicular']],
+      detail: 'A zero dot product is interpreted as orthogonality.',
+    },
+  ],
+  'eig-1': [
+    {
+      target: 'In Av = lambda v, the scalar lambda is the eigenvalue.',
+      evidence: [['lambda', 'eigenvalue'], ['scalar', 'multiplier', 'multiplying v']],
+      detail: 'The eigenvalue is identified as the scalar in the defining equation.',
+    },
+    {
+      target: 'Here lambda = 5.',
+      evidence: [['lambda = 5', 'lambda=5', 'eigenvalue is 5', '5']],
+      detail: 'The given scalar is read directly from Av = 5v.',
+    },
+  ],
+  'eig-2': [
+    {
+      target: 'The zero vector satisfies A0 = lambda 0 for every lambda.',
+      evidence: [['zero vector', '0'], ['every lambda', 'any lambda', 'all lambda']],
+      detail: 'The zero vector is tested in the eigenvector equation.',
+    },
+    {
+      target: 'That would make every scalar look like an eigenvalue.',
+      evidence: [['every scalar', 'any scalar', 'all scalars'], ['eigenvalue']],
+      detail: 'The definition would become meaningless if zero were allowed.',
+    },
+    {
+      target: 'So eigenvectors must be nonzero.',
+      evidence: [['nonzero', 'not zero'], ['eigenvector']],
+      detail: 'The nonzero condition is stated as part of the definition.',
+    },
+  ],
+  'inv-1': [
+    {
+      target: 'det(A) = 0 means A is singular.',
+      evidence: [['det(A) = 0', 'det=0', 'determinant zero'], ['singular']],
+      detail: 'A zero determinant is connected to singularity.',
+    },
+    {
+      target: 'A singular matrix has no inverse.',
+      evidence: [['singular'], ['no inverse', 'not invertible']],
+      detail: 'Singularity is interpreted as failure of invertibility.',
+    },
+    {
+      target: 'So A is not invertible.',
+      evidence: [['not invertible', 'no inverse', 'no']],
+      detail: 'The final invertibility decision follows from determinant zero.',
+    },
+  ],
+  'four-sub-1': [
+    {
+      target: 'Ax = 0 gives x1 = 0.',
+      evidence: [['Ax = 0', 'Ax=0'], ['x1 = 0', 'x1=0']],
+      detail: 'The null-space equation is translated into the forced coordinate.',
+    },
+    {
+      target: 'x2 is free.',
+      evidence: [['x2', 'second variable'], ['free']],
+      detail: 'The coordinate with no pivot condition is identified as free.',
+    },
+    {
+      target: 'The null space is span{(0, 1)}.',
+      evidence: [['null space', 'nullspace'], ['span'], ['(0, 1)', '0,1']],
+      detail: 'The free coordinate is written as the spanning direction for the null space.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+  ],
+  'least-squares-1': [
+    {
+      target: 'The best approximation projects b onto Col(A).',
+      evidence: [['project', 'projection'], ['b'], ['Col(A)', 'column space']],
+      detail: 'Least squares is framed as a projection onto the column space.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'The residual points from the projection to b.',
+      evidence: [['residual'], ['b - Ax', 'b minus Ax', 'error'], ['projection']],
+      detail: 'The residual is identified as the leftover error after projection.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'That residual is orthogonal to Col(A), so A^T r = 0.',
+      evidence: [['orthogonal', 'perpendicular'], ['Col(A)', 'column space'], ['A^T r = 0', 'At r = 0']],
+      detail: 'The residual condition is stated geometrically and algebraically.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+  ],
+  'vec-repair-coordinate-equations': [
+    {
+      target: 'Use coordinates: 2a + b = 7 and a + 3b = 8.',
+      evidence: [['2a + b = 7', '2a+b=7'], ['a + 3b = 8', 'a+3b=8']],
+      detail: 'The vector equation is split into scalar coordinate equations.',
+    },
+    {
+      target: 'From 2a + b = 7, b = 7 - 2a.',
+      evidence: [['b = 7 - 2a', 'b=7-2a']],
+      detail: 'One variable has been isolated from a coordinate equation.',
+    },
+    {
+      target: 'Substitute: a + 3(7 - 2a) = 8.',
+      evidence: [['a + 3(7 - 2a) = 8', 'a+3(7-2a)=8']],
+      detail: 'The isolated expression is substituted into the other coordinate equation.',
+    },
+    {
+      target: 'So -5a = -13, a = 13/5, and b = 9/5.',
+      evidence: [['a = 13/5', 'a=13/5', 'a = 2.6'], ['b = 9/5', 'b=9/5', 'b = 1.8']],
+      detail: 'Both repaired coordinate weights are solved and reported.',
+    },
+  ],
+  'span-repair-dependence': [
+    {
+      target: 'The third vector is the sum of the first two.',
+      evidence: [
+        ['third', 'v3'],
+        ['sum', 'v1 + v2', 'v1+v2'],
+      ],
+      detail: 'The redundant vector is identified through a sum relation.',
+    },
+    {
+      target: 'That gives a nontrivial dependence relation.',
+      evidence: [['nontrivial', 'not all zero'], ['dependence relation', 'dependent relation']],
+      detail: 'The dependence relation is named explicitly.',
+    },
+    {
+      target: 'So the vectors are linearly dependent.',
+      evidence: [['dependent', 'linearly dependent']],
+      detail: 'The independence decision follows from the nontrivial relation.',
+    },
+  ],
+  'sys-repair-sign': [
+    {
+      target: 'Add equations: 2x = 10.',
+      evidence: [['2x = 10', '2x=10', 'x + x = 10', 'x+x=10']],
+      detail: 'Adding the equations eliminates y without changing signs.',
+    },
+    {
+      target: 'x = 5.',
+      evidence: [['x = 5', 'x=5']],
+      detail: 'The eliminated equation is solved for x.',
+    },
+    {
+      target: 'Substitute: 5 + y = 9, so y = 4.',
+      evidence: [['y = 4', 'y=4'], ['5 + y = 9', '5+y=9']],
+      detail: 'The solved x-value is substituted back to find y.',
+    },
+  ],
+  'row-repair-pivot-free': [
+    {
+      target: 'The first variable is a pivot variable.',
+      evidence: [['first variable', 'x1'], ['pivot']],
+      detail: 'The pivot column is assigned to the first variable.',
+    },
+    {
+      target: 'The second variable has no pivot column.',
+      evidence: [['second variable', 'x2', 'y'], ['no pivot', 'without pivot']],
+      detail: 'The non-pivot column is identified.',
+    },
+    {
+      target: 'So x2 is free.',
+      evidence: [['x2', 'second variable', 'y'], ['free']],
+      detail: 'The non-pivot variable is named as the free variable.',
+    },
+  ],
+  'mat-repair-columns': [
+    {
+      target: 'Put T(e1) = (2, -1) in column 1.',
+      evidence: [['T(e1)', 'Te1', 'e1'], ['(2, -1)', '2,-1'], ['column 1', 'first column']],
+      detail: 'The first basis image is placed in the first column.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'Put T(e2) = (0, 3) in column 2.',
+      evidence: [['T(e2)', 'Te2', 'e2'], ['(0, 3)', '0,3'], ['column 2', 'second column']],
+      detail: 'The second basis image is placed in the second column.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'The matrix is [[2, 0], [-1, 3]].',
+      evidence: [['[[2, 0], [-1, 3]]', '2 0 -1 3', '2,0,-1,3']],
+      detail: 'The column images are assembled into the transformation matrix.',
+    },
+  ],
+  'sub-repair-zero': [
+    {
+      target: 'Every subspace must contain the zero vector.',
+      evidence: [['zero vector', '(0, 0)', '0 vector'], ['subspace']],
+      detail: 'The repair starts from the zero-vector subspace requirement.',
+    },
+    {
+      target: '(0, 0) does not satisfy x + y = 2.',
+      evidence: [['(0, 0)', '0,0'], ['does not satisfy', 'not satisfy', 'not in'], ['x + y = 2', 'x+y=2']],
+      detail: 'The zero vector is tested against the affine equation.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'So W is not a subspace.',
+      evidence: [['not a subspace', 'not subspace'], ['W', 'set']],
+      detail: 'The failed zero-vector test is converted into the subspace conclusion.',
+    },
+  ],
+  'det-repair-order': [
+    {
+      target: 'Use ad - bc.',
+      evidence: [['ad - bc', 'ad-bc']],
+      detail: 'The determinant formula is selected in the correct order.',
+    },
+    {
+      target: '5(3) - 1(2) = 15 - 2.',
+      evidence: [['5(3) - 1(2)', '5*3-1*2'], ['15 - 2', '15-2']],
+      detail: 'The matrix entries are substituted into ad - bc.',
+    },
+    {
+      target: 'The determinant is 13.',
+      evidence: [['13', 'det = 13', 'determinant is 13']],
+      detail: 'The arithmetic gives the repaired determinant.',
+    },
+  ],
+  'inv-repair-singular': [
+    {
+      target: 'A zero row means the matrix is singular.',
+      evidence: [['zero row'], ['singular']],
+      detail: 'A missing pivot row is connected to singularity.',
+    },
+    {
+      target: 'A singular square matrix does not have an inverse.',
+      evidence: [['singular'], ['no inverse', 'does not have an inverse', 'not invertible']],
+      detail: 'Singularity is translated into no inverse.',
+    },
+    {
+      target: 'So it is not invertible.',
+      evidence: [['not invertible', 'no inverse', 'no']],
+      detail: 'The final invertibility decision follows from the singular matrix test.',
+    },
+  ],
+  'four-sub-repair-nullspace': [
+    {
+      target: 'Ax = 0 gives x2 = 0.',
+      evidence: [['Ax = 0', 'Ax=0'], ['x2 = 0', 'x2=0']],
+      detail: 'The null-space equation is translated into the forced coordinate.',
+    },
+    {
+      target: 'x1 is free.',
+      evidence: [['x1', 'first variable'], ['free']],
+      detail: 'The coordinate with no pivot condition is identified as free.',
+    },
+    {
+      target: 'The null space is span{(1, 0)}.',
+      evidence: [['null space', 'nullspace'], ['span'], ['(1, 0)', '1,0']],
+      detail: 'The free coordinate is written as the spanning direction for the null space.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+  ],
+  'rank-repair-columns': [
+    {
+      target: 'A 6 by 9 matrix has 9 columns.',
+      evidence: [['9 columns', 'number of columns', 'n = 9', 'n=9']],
+      detail: 'The input dimension is read from the number of columns.',
+    },
+    {
+      target: 'Rank-nullity uses the number of columns.',
+      evidence: [['rank-nullity', 'rank nullity'], ['number of columns', 'columns']],
+      detail: 'The theorem is tied to the domain dimension.',
+    },
+    {
+      target: 'So rank + nullity = 9.',
+      evidence: [['rank + nullity = 9', 'rank+nullity=9'], ['9']],
+      detail: 'The blank is filled with the input dimension.',
+    },
+  ],
+  'orth-repair-projection': [
+    {
+      target: 'Projection = (4/2)(1, 1).',
+      evidence: [['4/2', '2'], ['(1, 1)', '1,1']],
+      detail: 'The projection scale includes the denominator u dot u.',
+    },
+    {
+      target: 'So the projection is (2, 2).',
+      evidence: [['(2, 2)', '2,2']],
+      detail: 'The scalar multiple is converted back into vector coordinates.',
+    },
+  ],
+  'least-repair-residual': [
+    {
+      target: 'The least-squares fit projects b onto Col(A).',
+      evidence: [['project', 'projection'], ['b'], ['Col(A)', 'column space']],
+      detail: 'The repair frames least squares as projection onto the column space.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'The residual is b minus that projection.',
+      evidence: [['residual'], ['b minus', 'b - Ax', 'error'], ['projection']],
+      detail: 'The residual is named as the leftover vector after projection.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'So the residual is orthogonal to Col(A).',
+      evidence: [['orthogonal', 'perpendicular'], ['Col(A)', 'column space']],
+      detail: 'The residual direction is stated relative to the column space.',
+    },
+  ],
+  'basis-repair-weights': [
+    {
+      target: 'Set a(2, 0) + b(0, 5) = (6, 10).',
+      evidence: [['a(2, 0) + b(0, 5) = (6, 10)', 'a(2,0)+b(0,5)=(6,10)']],
+      detail: 'The target vector is written as a weighted sum of basis vectors.',
+    },
+    {
+      target: '2a = 6, so a = 3.',
+      evidence: [['2a = 6', '2a=6'], ['a = 3', 'a=3']],
+      detail: 'The first basis coordinate is solved from the first coordinate equation.',
+    },
+    {
+      target: '5b = 10, so b = 2.',
+      evidence: [['5b = 10', '5b=10'], ['b = 2', 'b=2']],
+      detail: 'The second basis coordinate is solved from the second coordinate equation.',
+    },
+  ],
+  'eig-repair-scale': [
+    {
+      target: 'Av = -3v means the output is a scalar multiple of v.',
+      evidence: [['scalar multiple', 'scaled'], ['-3v', '-3 v']],
+      detail: 'The eigenvector equation is interpreted as scaling along the same line.',
+    },
+    {
+      target: 'The eigenvalue is -3.',
+      evidence: [['eigenvalue'], ['-3']],
+      detail: 'The scalar multiplying v is identified as the eigenvalue.',
+    },
+    {
+      target: 'The vector is not unchanged; it is flipped and scaled.',
+      evidence: [['not unchanged', 'changes', 'no'], ['flipped', 'scaled', '-3']],
+      detail: 'The response distinguishes preserving a line from leaving the vector unchanged.',
+    },
+  ],
+  'diag-repair-cancel': [
+    {
+      target: 'A^2 = (P D P inverse)(P D P inverse).',
+      evidence: [['A^2', 'A2'], ['P D P inverse', 'PDP inverse']],
+      detail: 'The square is expanded as two copies of the diagonalization.',
+    },
+    {
+      target: 'The middle P inverse P becomes I.',
+      evidence: [['middle'], ['P inverse P', 'P^-1P'], ['I', 'identity']],
+      detail: 'Only the adjacent inner inverse pair is cancelled.',
+      minimumScore: 2,
+      partialThreshold: 2,
+    },
+    {
+      target: 'So A^2 = P D^2 P inverse.',
+      evidence: [['P D^2 P inverse', 'PD^2P inverse', 'P D squared P inverse']],
+      detail: 'The outside P factors remain around the squared diagonal matrix.',
+    },
+  ],
+  'proof-repair-scalar-closure': [
+    {
+      target: 'The zero vector check is done.',
+      evidence: [['zero vector', 'zero'], ['done', 'checked']],
+      detail: 'The already-satisfied zero-vector condition is recognized.',
+    },
+    {
+      target: 'Addition closure is done.',
+      evidence: [['addition'], ['done', 'checked', 'closed']],
+      detail: 'The already-satisfied addition-closure condition is recognized.',
+    },
+    {
+      target: 'The missing check is closure under scalar multiplication.',
+      evidence: [['missing'], ['scalar multiplication', 'scalar closure']],
+      detail: 'The omitted subspace-proof condition is identified.',
+    },
+  ],
+}
+
+export const problemBank: Problem[] = baseProblemBank.map((problem) => ({
+  ...problem,
+  stepRubric: problem.stepRubric ?? stepRubricLibrary[problem.id],
+}))
+
 const byConcept = (conceptId: ConceptId) =>
   problemBank.filter((problem) => problem.conceptId === conceptId && !problem.repairOnly)
 
@@ -2952,8 +3492,28 @@ const evidenceChoiceMatches = (response: string, choice: string) => {
 const evidenceMatches = (response: string, evidenceGroup: string[]) =>
   evidenceGroup.some((choice) => evidenceChoiceMatches(response, choice))
 
-const matchedEvidenceCount = (response: string, rubric: StepRubric) =>
-  rubric.evidence.filter((evidenceGroup) => evidenceMatches(response, evidenceGroup)).length
+const rubricEvidenceWeight = (rubric: StepRubric, index: number) =>
+  rubric.weights?.[index] ?? 1
+
+const rubricMaxScore = (rubric: StepRubric) =>
+  rubric.evidence.reduce((sum, _, index) => sum + rubricEvidenceWeight(rubric, index), 0)
+
+const rubricRequiredScore = (rubric: StepRubric) =>
+  rubric.minimumScore ?? rubric.minimumEvidence ?? Math.max(1, rubricMaxScore(rubric))
+
+const rubricPartialThreshold = (rubric: StepRubric, requiredScore: number) =>
+  rubric.partialThreshold ??
+  (requiredScore <= 1 ? requiredScore : Math.max(1, Math.min(requiredScore - 0.01, requiredScore * 0.6)))
+
+const rubricEvidenceScore = (response: string, rubric: StepRubric) =>
+  rubric.evidence.reduce(
+    (sum, evidenceGroup, index) =>
+      evidenceMatches(response, evidenceGroup) ? sum + rubricEvidenceWeight(rubric, index) : sum,
+    0,
+  )
+
+const formatRubricScore = (score: number) =>
+  Number.isInteger(score) ? String(score) : score.toFixed(1).replace(/\.0$/, '')
 
 const misconceptionFromTriggers = (problem: Problem, value: string) => {
   const normalizedValue = normalize(value)
@@ -3164,6 +3724,10 @@ const evaluateWorkStep = (
 ): WorkStepFeedback => {
   const normalizedResponse = normalize(response)
   const expected = rubric.target
+  const rubricScore = rubricEvidenceScore(response, rubric)
+  const rubricMax = rubricMaxScore(rubric)
+  const rubricRequired = rubricRequiredScore(rubric)
+  const partialThreshold = rubricPartialThreshold(rubric, rubricRequired)
 
   if (!normalizedResponse) {
     return {
@@ -3173,6 +3737,9 @@ const evaluateWorkStep = (
       status: 'empty',
       detail: `Step ${index + 1} is waiting for evidence.`,
       nextAction: expected,
+      rubricScore,
+      rubricMax,
+      rubricRequired,
     }
   }
 
@@ -3186,15 +3753,14 @@ const evaluateWorkStep = (
       status: 'needs-work',
       detail: `${specificMisconception.label}: ${specificMisconception.feedback}`,
       nextAction: specificMisconception.repair,
+      rubricScore,
+      rubricMax,
+      rubricRequired,
       misconception: specificMisconception,
     }
   }
 
-  const evidenceMatched = matchedEvidenceCount(response, rubric)
-  const requiredEvidence =
-    rubric.minimumEvidence ?? Math.max(1, rubric.evidence.length)
-
-  if (evidenceMatched >= requiredEvidence) {
+  if (rubricScore >= rubricRequired) {
     return {
       index,
       response,
@@ -3205,6 +3771,25 @@ const evaluateWorkStep = (
         index === getWorkStepTargets(problem).length - 1
           ? 'Use this work to write the final answer.'
           : getWorkStepTargets(problem)[index + 1],
+      rubricScore,
+      rubricMax,
+      rubricRequired,
+    }
+  }
+
+  if (rubricScore >= partialThreshold) {
+    return {
+      index,
+      response,
+      expected,
+      status: 'partial',
+      detail: `Step ${index + 1} is close: ${formatRubricScore(
+        rubricScore,
+      )}/${formatRubricScore(rubricRequired)} rubric points. ${rubric.detail}`,
+      nextAction: rubric.nextAction ?? expected,
+      rubricScore,
+      rubricMax,
+      rubricRequired,
     }
   }
 
@@ -3217,10 +3802,15 @@ const evaluateWorkStep = (
     expected,
     status: 'needs-work',
     detail:
-      evidenceMatched > 0
-        ? `Step ${index + 1} has ${evidenceMatched}/${requiredEvidence} rubric signals. ${misconception.feedback}`
+      rubricScore > 0
+        ? `Step ${index + 1} has ${formatRubricScore(rubricScore)}/${formatRubricScore(
+            rubricRequired,
+          )} rubric points. ${misconception.feedback}`
         : `${misconception.label}: ${misconception.feedback}`,
     nextAction: rubric.nextAction ?? misconception.repair,
+    rubricScore,
+    rubricMax,
+    rubricRequired,
     misconception,
   }
 }
@@ -3236,7 +3826,9 @@ export const evaluateWorkSteps = (
   )
   const answered = feedback.filter((step) => step.response.trim()).length
   const onTrack = feedback.filter((step) => step.status === 'on-track').length
+  const partial = feedback.filter((step) => step.status === 'partial').length
   const firstNeedsWork = feedback.find((step) => step.status === 'needs-work')
+  const firstPartial = feedback.find((step) => step.status === 'partial')
   const firstEmpty = feedback.find((step) => step.status === 'empty')
   const firstMisconception = feedback.find((step) => step.misconception)
   const misconception = firstMisconception?.misconception
@@ -3255,6 +3847,22 @@ export const evaluateWorkSteps = (
       nextAction: firstNeedsWork.nextAction,
       answered,
       onTrack,
+      partial,
+      total: targets.length,
+      feedback,
+      misconception,
+    }
+  }
+
+  if (firstPartial) {
+    return {
+      problemId: problem.id,
+      headline: `Refine step ${firstPartial.index + 1}`,
+      detail: firstPartial.detail,
+      nextAction: firstPartial.nextAction,
+      answered,
+      onTrack,
+      partial,
       total: targets.length,
       feedback,
       misconception,
@@ -3265,10 +3873,11 @@ export const evaluateWorkSteps = (
     return {
       problemId: problem.id,
       headline: 'Work path is coherent',
-      detail: 'Each recorded step is aligned with the verified solution path.',
+      detail: 'Each recorded step meets the verified rubric.',
       nextAction: 'Write the final answer and submit when ready.',
       answered,
       onTrack,
+      partial,
       total: targets.length,
       feedback,
       misconception,
@@ -3279,11 +3888,14 @@ export const evaluateWorkSteps = (
     problemId: problem.id,
     headline: answered ? `Continue step ${firstEmpty.index + 1}` : 'Start the work path',
     detail: answered
-      ? `${onTrack}/${targets.length} steps are currently on track.`
+      ? `${onTrack}/${targets.length} steps are currently on track${
+          partial ? `, with ${partial} partly complete.` : '.'
+        }`
       : 'A first setup line gives the tutor something specific to check.',
     nextAction: firstEmpty.nextAction,
     answered,
     onTrack,
+    partial,
     total: targets.length,
     feedback,
     misconception,
@@ -3641,6 +4253,9 @@ export const submitResponse = (
   const masteryDelta = feedback.tone === 'correct' ? guidedCorrectDelta : score >= 3 ? 3 : -4
   const confidenceDelta = feedback.tone === 'correct' ? 6 : feedback.tone === 'mistake' ? -5 : 1
   const createdAt = nowIso()
+  const workPathSummary = `${stepReport.onTrack}/${stepReport.total} steps on track${
+    stepReport.partial ? `, ${stepReport.partial} partial` : ''
+  }`
   const attempt: Attempt = {
     id: uid('attempt'),
     problemId,
@@ -3650,8 +4265,8 @@ export const submitResponse = (
     score,
     feedback:
       guideStepsUsed > 0
-        ? `${feedback.detail} Guided support used: ${guideStepsUsed} step${guideStepsUsed === 1 ? '' : 's'}. Work path: ${stepReport.onTrack}/${stepReport.total} steps on track.`
-        : `${feedback.detail} Work path: ${stepReport.onTrack}/${stepReport.total} steps on track.`,
+        ? `${feedback.detail} Guided support used: ${guideStepsUsed} step${guideStepsUsed === 1 ? '' : 's'}. Work path: ${workPathSummary}.`
+        : `${feedback.detail} Work path: ${workPathSummary}.`,
     hintsUsed,
     guideStepsUsed,
     mistakeLabel: misconceptionEvidence?.pattern.label,
