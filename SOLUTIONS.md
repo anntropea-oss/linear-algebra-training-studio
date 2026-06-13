@@ -645,3 +645,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test` confirms the least-squares wrong-direction calibration case now triggers residual-orthogonality repair instead of scoring on track.
+
+## [2026-06-13 11:16] No Automated PR Checks Reported For Rubric Calibration PR
+- Problem: GitHub reported no automated checks for PR #20, so validation for the rubric-calibration branch depends on local verification.
+- Root Cause: Unknown; the repository still has no reported CI checks for pull requests.
+- Solution: Logged the PR-specific occurrence and used local test, build, lint, and diff verification as the validation path.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 20` returned `no checks reported on the 'codex/phase-2-rubric-calibration' branch`.
