@@ -685,3 +685,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: `curl -I http://127.0.0.1:5173/` returned HTTP 200; headless Chrome wrote `/tmp/la-studio-desktop.png` and `/tmp/la-studio-mobile.png`; the DOM dump contained `L.A. Studio`, `linear algebra`, and the updated page title.
+
+## [2026-06-13 14:09] No Automated PR Checks Reported For L.A. Studio Brand PR
+- Problem: GitHub reported no automated checks for PR #23, so validation for the L.A. Studio brand branch depends on local verification before merge and the post-merge Pages deployment run.
+- Root Cause: The Pages workflow deploys on pushes to `main`; it does not run for pull requests.
+- Solution: Logged the PR-specific limitation and used local test, build, Pages build, lint, diff, and rendered-page verification before merge.
+- Files Changed: `SOLUTIONS.md`
+- Status: Open
+- Verification: `gh pr checks 23` returned `no checks reported on the 'codex/la-studio-brand' branch`.
