@@ -15,6 +15,14 @@ For GitHub Pages-compatible production builds:
 npm run build:pages
 ```
 
+## Public Demo
+
+The public GitHub Pages demo will deploy from `main` after each merge:
+
+[https://anntropea-oss.github.io/linear-algebra-training-studio/](https://anntropea-oss.github.io/linear-algebra-training-studio/)
+
+Deployment details are in [GitHub Pages Deployment](docs/GITHUB_PAGES_DEPLOYMENT.md).
+
 ## Current Experience
 
 - Choose a starting point: brand new, systems, matrices, or advanced review.
@@ -41,6 +49,7 @@ npm run build:pages
 - [Curriculum Skill Map](docs/CURRICULUM_SKILL_MAP.md)
 - [Rebuild Analysis](docs/REBUILD_ANALYSIS.md)
 - [Tracking Plan](docs/TRACKING_PLAN.md)
+- [GitHub Pages Deployment](docs/GITHUB_PAGES_DEPLOYMENT.md)
 - [Solution Log](SOLUTIONS.md)
 
 ## Next Engineering Step

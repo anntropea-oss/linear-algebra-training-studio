@@ -73,12 +73,18 @@ The app should care about evidence:
 - Repair-only problem variants prioritized for the active misconception.
 - Mastery and confidence tracking by concept.
 - Repair queue with resolution.
+- Public GitHub Pages demo for ongoing testing and sharing.
 
 ## Next Product Step
 
 Deepen math-aware evaluation and adaptive repair:
 
+- keep the GitHub Pages demo green after each `main` merge
 - learner-data review of rubric weights and partial thresholds
 - larger instructor-reviewed repair bank
 - adaptive difficulty inside each misconception repair path
 - optional AI explanation layer over verified problem templates
+
+## App Path
+
+Start with the GitHub Pages web demo while the tutor is changing quickly. After the core learning data model is stable, add a PWA manifest, install icons, and offline-safe caching. Native app packaging should wait until the browser version has durable accounts and predictable sync behavior.
