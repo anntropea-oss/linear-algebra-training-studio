@@ -283,6 +283,34 @@ export type WorkStepReport = {
   }
 }
 
+export type RubricCalibrationKind =
+  | 'complete'
+  | 'almost-complete'
+  | 'missing-evidence'
+  | 'wrong-direction'
+
+export type RubricCalibrationCase = {
+  problemId: string
+  kind: RubricCalibrationKind
+  label: string
+  workSteps: string[]
+  expected: {
+    stepIndex?: number
+    status?: WorkStepStatus
+    headlineStartsWith: string
+    misconceptionId?: string
+    partial: number
+  }
+}
+
+export type RubricCalibrationSummary = {
+  problemCount: number
+  caseCount: number
+  casesPerProblem: number
+  partialCaseCount: number
+  misconceptionCaseCount: number
+}
+
 export const concepts: Concept[] = [
   {
     id: 'vectors',
@@ -2392,7 +2420,7 @@ const baseProblemBank: Problem[] = [
       },
       {
         target: 'Show if u and v are in W, then u + v is in W.',
-        evidence: [['u + v', 'u+v'], ['addition', 'closed under addition']],
+        evidence: [['u + v', 'u+v'], ['addition', 'closed under addition', 'u and v are in W']],
         detail: 'Addition closure is stated for arbitrary vectors in W.',
       },
       {
@@ -2726,7 +2754,7 @@ const stepRubricLibrary: Partial<Record<string, StepRubric[]>> = {
     },
     {
       target: 'All combinations stay on one line.',
-      evidence: [['line', 'one line'], ['same direction', 'multiples']],
+      evidence: [['line', 'one line'], ['same direction', 'multiples', 'combinations']],
       detail: 'The span is recognized as one direction rather than a full plane.',
     },
     {
@@ -3482,6 +3510,13 @@ const evidenceChoiceMatches = (response: string, choice: string) => {
   const normalizedChoice = normalize(choice)
   const compactedResponse = compact(response)
   const compactedChoice = compact(choice)
+  const singleTokenChoice = /^[a-z0-9]$/.test(normalizedChoice)
+
+  if (singleTokenChoice) {
+    return new RegExp(`(^|[^a-z0-9])${normalizedChoice}($|[^a-z0-9])`).test(
+      normalizedResponse,
+    )
+  }
 
   return (
     normalizedResponse.includes(normalizedChoice) ||
@@ -3503,7 +3538,7 @@ const rubricRequiredScore = (rubric: StepRubric) =>
 
 const rubricPartialThreshold = (rubric: StepRubric, requiredScore: number) =>
   rubric.partialThreshold ??
-  (requiredScore <= 1 ? requiredScore : Math.max(1, Math.min(requiredScore - 0.01, requiredScore * 0.6)))
+  (requiredScore <= 1 ? requiredScore : Math.max(1, requiredScore - 1))
 
 const rubricEvidenceScore = (response: string, rubric: StepRubric) =>
   rubric.evidence.reduce(
@@ -3744,8 +3779,10 @@ const evaluateWorkStep = (
   }
 
   const specificMisconception = classifyWorkStepMisconception(problem, response, expected, false)
+  const evidenceBackedCoordinateLanguage =
+    specificMisconception?.id === commonMistakes.coordinate.id && rubricScore > 0
 
-  if (specificMisconception) {
+  if (specificMisconception && !evidenceBackedCoordinateLanguage && rubricScore < rubricRequired) {
     return {
       index,
       response,
@@ -3793,8 +3830,7 @@ const evaluateWorkStep = (
     }
   }
 
-  const misconception =
-    classifyWorkStepMisconception(problem, response, expected) ?? commonMistakes.setupMismatch
+  const guidance = commonMistakes.setupMismatch
 
   return {
     index,
@@ -3805,13 +3841,12 @@ const evaluateWorkStep = (
       rubricScore > 0
         ? `Step ${index + 1} has ${formatRubricScore(rubricScore)}/${formatRubricScore(
             rubricRequired,
-          )} rubric points. ${misconception.feedback}`
-        : `${misconception.label}: ${misconception.feedback}`,
-    nextAction: rubric.nextAction ?? misconception.repair,
+          )} rubric points. ${guidance.feedback}`
+        : `${guidance.label}: ${guidance.feedback}`,
+    nextAction: rubric.nextAction ?? guidance.repair,
     rubricScore,
     rubricMax,
     rubricRequired,
-    misconception,
   }
 }
 
@@ -3842,7 +3877,9 @@ export const evaluateWorkSteps = (
   if (firstNeedsWork) {
     return {
       problemId: problem.id,
-      headline: `Repair step ${firstNeedsWork.index + 1}`,
+      headline: `${firstNeedsWork.misconception ? 'Repair' : 'Revise'} step ${
+        firstNeedsWork.index + 1
+      }`,
       detail: firstNeedsWork.detail,
       nextAction: firstNeedsWork.nextAction,
       answered,
@@ -3899,6 +3936,135 @@ export const evaluateWorkSteps = (
     total: targets.length,
     feedback,
     misconception,
+  }
+}
+
+const evidenceSampleText = (rubric: StepRubric, throughGroupIndex: number) =>
+  rubric.evidence
+    .slice(0, throughGroupIndex + 1)
+    .map((evidenceGroup) => evidenceGroup[0])
+    .join(' ')
+
+const partialCalibrationStep = (problem: Problem) => {
+  const rubrics = getStepRubrics(problem)
+
+  for (const [stepIndex, rubric] of rubrics.entries()) {
+    const required = rubricRequiredScore(rubric)
+    const partialThreshold = rubricPartialThreshold(rubric, required)
+    let score = 0
+
+    for (let evidenceIndex = 0; evidenceIndex < rubric.evidence.length; evidenceIndex += 1) {
+      score += rubricEvidenceWeight(rubric, evidenceIndex)
+
+      if (score >= partialThreshold && score < required) {
+        return {
+          stepIndex,
+          response: evidenceSampleText(rubric, evidenceIndex),
+        }
+      }
+    }
+  }
+
+  return undefined
+}
+
+const wrongDirectionSample = (problem: Problem) => {
+  const misconception = problem.mistakePatterns[0] ?? commonMistakes.setupMismatch
+  const firstRubric = getStepRubrics(problem)[0]
+  const firstRubricRequired = rubricRequiredScore(firstRubric)
+  const trigger =
+    misconception.triggers.find(
+      (candidate) => rubricEvidenceScore(candidate, firstRubric) < firstRubricRequired,
+    ) ??
+    misconception.triggers[0] ??
+    'guess'
+
+  return {
+    response: `${trigger} because that is the rule I am using.`,
+    misconceptionId: misconception.id,
+  }
+}
+
+export const getRubricCalibrationCases = (): RubricCalibrationCase[] =>
+  problemBank.flatMap((problem) => {
+    const rubrics = getStepRubrics(problem)
+    const completeWorkSteps = rubrics.map((rubric) => rubric.target)
+    const partialStep = partialCalibrationStep(problem)
+    const almostCompleteWorkSteps = partialStep
+      ? completeWorkSteps.map((step, index) =>
+          index === partialStep.stepIndex ? partialStep.response : step,
+        )
+      : completeWorkSteps.slice(0, -1)
+    const almostCompleteStepIndex = partialStep?.stepIndex ?? Math.max(0, rubrics.length - 1)
+    const almostCompleteStatus: WorkStepStatus = partialStep ? 'partial' : 'empty'
+    const wrongDirection = wrongDirectionSample(problem)
+
+    return [
+      {
+        problemId: problem.id,
+        kind: 'complete',
+        label: 'Complete verified solution path',
+        workSteps: completeWorkSteps,
+        expected: {
+          headlineStartsWith: 'Work path is coherent',
+          partial: 0,
+        },
+      },
+      {
+        problemId: problem.id,
+        kind: 'almost-complete',
+        label: partialStep
+          ? 'Almost complete step with enough evidence for partial credit'
+          : 'Almost complete path with the final step still empty',
+        workSteps: almostCompleteWorkSteps,
+        expected: {
+          stepIndex: almostCompleteStepIndex,
+          status: almostCompleteStatus,
+          headlineStartsWith: partialStep ? 'Refine step' : 'Continue step',
+          partial: partialStep ? 1 : 0,
+        },
+      },
+      {
+        problemId: problem.id,
+        kind: 'missing-evidence',
+        label: 'Vague work that lacks the mathematical evidence the rubric requires',
+        workSteps: ['I know this follows from the lesson, but I have not written the needed equation or definition.'],
+        expected: {
+          stepIndex: 0,
+          status: 'needs-work',
+          headlineStartsWith: 'Revise step',
+          partial: 0,
+        },
+      },
+      {
+        problemId: problem.id,
+        kind: 'wrong-direction',
+        label: 'Known misconception trigger for the problem concept',
+        workSteps: [wrongDirection.response],
+        expected: {
+          stepIndex: 0,
+          status: 'needs-work',
+          headlineStartsWith: 'Repair step',
+          misconceptionId: wrongDirection.misconceptionId,
+          partial: 0,
+        },
+      },
+    ]
+  })
+
+export const getRubricCalibrationSummary = (): RubricCalibrationSummary => {
+  const cases = getRubricCalibrationCases()
+
+  return {
+    problemCount: problemBank.length,
+    caseCount: cases.length,
+    casesPerProblem: 4,
+    partialCaseCount: cases.filter(
+      (calibrationCase) => calibrationCase.expected.status === 'partial',
+    ).length,
+    misconceptionCaseCount: cases.filter((calibrationCase) =>
+      Boolean(calibrationCase.expected.misconceptionId),
+    ).length,
   }
 }
 

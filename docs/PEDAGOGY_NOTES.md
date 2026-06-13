@@ -13,6 +13,7 @@ The rebuilt app focuses on real-time learning, not after-the-fact reporting.
 - Give feedback before the learner submits.
 - Reveal help progressively when the learner does not know how to begin.
 - Separate arithmetic slips from conceptual misunderstandings.
+- Separate missing written evidence from repair-worthy misconceptions.
 - Treat mistakes as repair targets, not failures.
 - Use the next problem to respond to the latest evidence.
 
@@ -81,6 +82,6 @@ The course map now includes the topics a first serious linear algebra course exp
 - Matrix-specific answer checking.
 - More concept-specific misconceptions.
 - Problem variants that adapt difficulty within a session.
-- Instructor calibration of step-rubric weights, partial thresholds, and transfer-problem rubrics.
+- Learner-data calibration of step-rubric weights, partial thresholds, and transfer-problem rubrics.
 - A backend AI layer that can explain verified steps without inventing math.
 - More robust lesson sequencing with short checks for understanding before unlocking practice.

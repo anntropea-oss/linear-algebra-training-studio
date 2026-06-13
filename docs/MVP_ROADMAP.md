@@ -29,6 +29,7 @@ Status: started
 - Score work steps with concept-specific evidence rubrics instead of plain token overlap.
 - Cover every verified problem with explicit step rubrics.
 - Distinguish partial rubric progress from wrong-direction steps.
+- Validate every problem with complete, almost-complete, missing-evidence, and wrong-direction sample work.
 - Tag misconception patterns from work steps and route targeted repair sets.
 - Use a broader misconception taxonomy across core linear algebra concepts.
 - Serve repair-only problem variants before ordinary practice in focused repair sets.
@@ -45,7 +46,7 @@ Status: started
 
 - Add multiple problems per concept.
 - Add variants by difficulty.
-- Calibrate step-rubric weights with learner data and instructor review.
+- Refine step-rubric weights with real learner data and instructor review.
 - Add more repair variants for every misconception.
 - Add mixed review sets.
 - Add application problems.
