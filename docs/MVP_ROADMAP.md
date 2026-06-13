@@ -1,6 +1,6 @@
 # MVP Roadmap
 
-## Phase 1: Live Tutor Core
+## Phase 1: L.A. Studio Core
 
 Status: current app
 

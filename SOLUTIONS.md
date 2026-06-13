@@ -677,3 +677,11 @@
 - Files Changed: `.github/workflows/pages.yml`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: The original Pages run completed successfully but showed the warning; the follow-up workflow change opts into the recommended Node 24 runtime.
+
+## [2026-06-13 14:07] In-App Browser Route Was Unavailable During Brand Verification
+- Problem: The Codex in-app browser bridge reported that no browser route was available while verifying the L.A. Studio rebrand at `http://127.0.0.1:5173/`; the fallback headless Chrome screenshot commands also left temporary helper processes attached after writing screenshots.
+- Root Cause: Unknown; the app dev server was reachable, but the browser bridge could not route commands for the current Codex browser session.
+- Solution: Used local headless Chrome as a verification workaround, captured desktop and mobile screenshots, dumped the rendered DOM, and cleaned up only the temporary Chrome sessions started for verification.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: `curl -I http://127.0.0.1:5173/` returned HTTP 200; headless Chrome wrote `/tmp/la-studio-desktop.png` and `/tmp/la-studio-mobile.png`; the DOM dump contained `L.A. Studio`, `linear algebra`, and the updated page title.

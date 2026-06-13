@@ -1,6 +1,6 @@
-# Linear Algebra Live Tutor
+# L.A. Studio
 
-A freestanding React app for learning linear algebra from any starting point. The app creates active problem sets, gives real-time feedback while the learner works, tracks mistakes and progress, and adapts the next set toward repair, review, or challenge.
+L.A. Studio is a freestanding React app for learning linear algebra from any starting point. The app creates active problem sets, gives real-time feedback while the learner works, tracks mistakes and progress, and adapts the next set toward repair, review, or challenge.
 
 ## Run Locally
 
