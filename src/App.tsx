@@ -243,11 +243,11 @@ const App = () => {
       <aside className="rail">
         <div className="brand">
           <span className="brand-icon">
-            <Brain size={24} />
+            <span className="brand-mark">LA</span>
           </span>
-          <div>
-            <p className="eyebrow">Linear Algebra</p>
-            <h1>Live Tutor</h1>
+          <div className="brand-wordmark">
+            <h1>L.A. Studio</h1>
+            <p>linear algebra</p>
           </div>
         </div>
 

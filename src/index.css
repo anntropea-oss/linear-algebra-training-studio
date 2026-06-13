@@ -1,6 +1,22 @@
 :root {
-  color: #17211f;
-  background: #f5f7f9;
+  --la-aqua: #00c7c7;
+  --la-aqua-soft: #dffbfa;
+  --la-border: #efc7bc;
+  --la-coral: #ff6f61;
+  --la-cream: #fff8e7;
+  --la-ink: #231326;
+  --la-muted: #715d73;
+  --la-panel: #fffdf6;
+  --la-panel-soft: #fff2df;
+  --la-pink: #ff2f92;
+  --la-plum: #4b1f68;
+  --la-sky: #45d6ff;
+  --la-sun: #ffb238;
+  --la-success: #11856f;
+  --la-warning: #d77800;
+  --la-danger: #b91850;
+  color: var(--la-ink);
+  background: #fff6e3;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -29,10 +45,10 @@ textarea {
 
 button {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #ccd7d4;
+  background: var(--la-panel);
+  border: 1px solid var(--la-border);
   border-radius: 8px;
-  color: #17211f;
+  color: var(--la-ink);
   cursor: pointer;
   display: inline-flex;
   font-weight: 700;
@@ -48,8 +64,8 @@ button {
 }
 
 button:hover {
-  background: #eef3f1;
-  border-color: #aab9b4;
+  background: var(--la-panel-soft);
+  border-color: var(--la-coral);
 }
 
 button:active {
@@ -59,12 +75,12 @@ button:active {
 button:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.25);
+  outline: 3px solid rgba(0, 199, 199, 0.32);
   outline-offset: 2px;
 }
 
 strong {
-  color: #17211f;
+  color: var(--la-ink);
 }
 
 p,
