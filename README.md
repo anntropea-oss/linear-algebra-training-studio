@@ -27,8 +27,10 @@ Deployment details are in [GitHub Pages Deployment](docs/GITHUB_PAGES_DEPLOYMENT
 
 - Choose a starting point: brand new, systems, matrices, or advanced review.
 - Complete a short diagnostic placement check to refine the starting point.
-- Read concept lessons with definitions, theory, and worked examples before practice.
-- Pass lesson checks before opening the active problem set.
+- Start with a full concept lecture at the top of the learning page.
+- Study definitions and two worked examples with a reason for every step.
+- Solve a free-response try-it problem before the lesson checks unlock.
+- Answer lesson checks with stable, varied choice order before opening the active problem set.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
 - Enter step-by-step work and get step-level feedback.
@@ -37,7 +39,7 @@ Deployment details are in [GitHub Pages Deployment](docs/GITHUB_PAGES_DEPLOYMENT
 - Validate rubric behavior with sample student responses for every problem.
 - Tag misconception patterns and create targeted repair sets.
 - Practice repair-only variants matched to the active misconception.
-- Ask for AI-style guided steps when you do not know how to start.
+- Ask for AI-style guided steps that explain both what to do and why the step follows.
 - Submit attempts and update mastery/confidence.
 - See concept progress, recent attempts, and a repair queue.
 - Persist the learner profile in local browser storage.

@@ -35,6 +35,7 @@ import {
   getPrerequisiteStatus,
   getWorkStepTargets,
   markLessonRead,
+  orderChoices,
   overallMastery,
   resolveMistake,
   setCompletion,
@@ -105,6 +106,15 @@ const App = () => {
   const [lessonCheckAnswers, setLessonCheckAnswers] = useState<
     Record<string, string>
   >({})
+  const [lessonTryItDrafts, setLessonTryItDrafts] = useState<Record<string, string>>(
+    {},
+  )
+  const [lessonTryItChecks, setLessonTryItChecks] = useState<Record<string, boolean>>(
+    {},
+  )
+  const [lessonTryItHints, setLessonTryItHints] = useState<Record<string, boolean>>(
+    {},
+  )
   const activeSet = getActiveSet(profile, selectedSetId)
   const activeConcept = getConcept(activeSet.conceptId)
   const activeLesson = getLesson(activeSet.conceptId)
@@ -124,6 +134,11 @@ const App = () => {
   )
   const prerequisiteStatus = getPrerequisiteStatus(profile, activeSet.conceptId)
   const lessonRead = Boolean(profile.lessonReads?.[activeSet.conceptId])
+  const lessonTryItDraft = lessonTryItDrafts[activeSet.conceptId] ?? ''
+  const lessonTryItChecked = lessonTryItChecks[activeSet.conceptId] ?? false
+  const lessonTryItFeedback = evaluateResponse(activeLesson.tryIt, lessonTryItDraft)
+  const lessonTryItPassed =
+    lessonTryItChecked && lessonTryItFeedback.tone === 'correct'
   const diagnosticComplete = diagnosticQuestions.every(
     (question) => diagnosticResponses[question.id],
   )
@@ -168,6 +183,9 @@ const App = () => {
     setGuideLevels({})
     setDiagnosticResponses(nextProfile.diagnostic?.responses ?? {})
     setLessonCheckAnswers({})
+    setLessonTryItDrafts({})
+    setLessonTryItChecks({})
+    setLessonTryItHints({})
   }
 
   const handleAddSet = (mode: SetMode) => {
@@ -221,8 +239,22 @@ const App = () => {
   }
 
   const handleMarkLessonRead = () => {
-    if (!lessonCheckResult.passed) return
-    setProfile(markLessonRead(profile, activeSet.conceptId, lessonCheckResponses))
+    if (!lessonTryItPassed || !lessonCheckResult.passed) return
+    const profileWithTryIt = activeSet.problemIds.includes(activeLesson.tryIt.id)
+      ? submitResponse(
+          profile,
+          activeSet.id,
+          activeLesson.tryIt.id,
+          lessonTryItDraft,
+        )
+      : profile
+    setProfile(
+      markLessonRead(
+        profileWithTryIt,
+        activeSet.conceptId,
+        lessonCheckResponses,
+      ),
+    )
   }
 
   const handleDiagnosticSubmit = () => {
@@ -236,6 +268,9 @@ const App = () => {
     setHintLevels({})
     setGuideLevels({})
     setLessonCheckAnswers({})
+    setLessonTryItDrafts({})
+    setLessonTryItChecks({})
+    setLessonTryItHints({})
   }
 
   return (
@@ -331,6 +366,241 @@ const App = () => {
           </div>
         </header>
 
+        <section className="lesson-stage">
+          <div className="lesson-stage-heading">
+            <div>
+              <p className="eyebrow">Learn first</p>
+              <h2>{activeConcept.title}</h2>
+              <p>{activeLesson.whyItMatters}</p>
+            </div>
+            <span className={`lesson-status ${lessonRead ? 'completed' : 'active'}`}>
+              {lessonRead ? 'lesson complete' : 'lesson in progress'}
+            </span>
+          </div>
+
+          <div className="lesson-intro">
+            <BookOpen size={24} />
+            <div>
+              <p className="eyebrow">The central idea</p>
+              <h3>{activeLesson.bigIdea}</h3>
+            </div>
+          </div>
+
+          <div className="lecture-flow">
+            {activeLesson.lecture.map((section, index) => (
+              <article key={section.title}>
+                <span>{index + 1}</span>
+                <div>
+                  <h3>{section.title}</h3>
+                  <p>{section.explanation}</p>
+                  <div className="lecture-connection">
+                    <strong>Why this leads forward</strong>
+                    <p>{section.connection}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <section className="lesson-block">
+            <div className="lesson-block-heading">
+              <p className="eyebrow">Vocabulary</p>
+              <h3>Terms you need before calculating</h3>
+            </div>
+            <div className="definition-grid">
+              {activeLesson.definitions.map((definition) => (
+                <div key={definition.term}>
+                  <strong>{definition.term}</strong>
+                  <p>{definition.meaning}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="lesson-block">
+            <div className="lesson-block-heading">
+              <p className="eyebrow">Watch the reasoning</p>
+              <h3>Two worked examples</h3>
+            </div>
+            <div className="worked-example-grid">
+              {activeLesson.workedExamples.map((example) => (
+                <article className="worked-example" key={example.title}>
+                  <h4>{example.title}</h4>
+                  <strong>{example.prompt}</strong>
+                  <ol>
+                    {example.steps.map((step, index) => (
+                      <li key={`${example.title}-${index}`}>
+                        <strong>{step.action}</strong>
+                        <p>
+                          <b>Why this step:</b> {step.why}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="example-takeaway">{example.takeaway}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {!lessonRead ? (
+            <>
+              <section className="try-it-tool">
+                <div className="lesson-block-heading">
+                  <p className="eyebrow">Try it yourself</p>
+                  <h3>Use the method before the problem set</h3>
+                </div>
+                <div className="try-it-context">
+                  <strong>Recall from the lecture</strong>
+                  <p>{activeLesson.theory[0]}</p>
+                </div>
+                <strong className="try-it-prompt">{activeLesson.tryIt.prompt}</strong>
+                <label className="answer-field">
+                  <span>Show your answer or reasoning</span>
+                  <textarea
+                    aria-label="Try it yourself answer"
+                    onChange={(event) => {
+                      setLessonTryItDrafts((currentDrafts) => ({
+                        ...currentDrafts,
+                        [activeSet.conceptId]: event.target.value,
+                      }))
+                      setLessonTryItChecks((currentChecks) => ({
+                        ...currentChecks,
+                        [activeSet.conceptId]: false,
+                      }))
+                    }}
+                    placeholder="Work the example in your own words"
+                    value={lessonTryItDraft}
+                  />
+                </label>
+                <div className="problem-actions">
+                  <button
+                    onClick={() =>
+                      setLessonTryItHints((currentHints) => ({
+                        ...currentHints,
+                        [activeSet.conceptId]: true,
+                      }))
+                    }
+                    type="button"
+                  >
+                    <Lightbulb size={17} />
+                    Need a starting hint
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={!lessonTryItDraft.trim()}
+                    onClick={() =>
+                      setLessonTryItChecks((currentChecks) => ({
+                        ...currentChecks,
+                        [activeSet.conceptId]: true,
+                      }))
+                    }
+                    type="button"
+                  >
+                    <CheckCircle2 size={17} />
+                    Check my try
+                  </button>
+                </div>
+                {lessonTryItHints[activeSet.conceptId] ? (
+                  <div className="hint-box">
+                    <strong>Start here</strong>
+                    <p>{activeLesson.tryIt.hint}</p>
+                    <span>{activeLesson.tryIt.deeperHint}</span>
+                  </div>
+                ) : null}
+                {lessonTryItChecked ? (
+                  <div
+                    className={`try-it-feedback ${
+                      lessonTryItPassed ? 'correct' : 'needs-work'
+                    }`}
+                  >
+                    <strong>{lessonTryItFeedback.headline}</strong>
+                    <p>{lessonTryItFeedback.detail}</p>
+                    <div>
+                      <b>Why this is the next move</b>
+                      <span>{lessonTryItFeedback.nextAction}</span>
+                    </div>
+                    {lessonTryItPassed ? (
+                      <ol>
+                        {activeLesson.tryIt.solutionSteps.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ol>
+                    ) : null}
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="lesson-check-panel">
+                <div className="lesson-block-heading">
+                  <p className="eyebrow">Check your understanding</p>
+                  <h3>
+                    {lessonTryItPassed
+                      ? 'Confirm the ideas, not the answer position'
+                      : 'Complete the try-it problem to unlock these checks'}
+                  </h3>
+                </div>
+                {lessonCheckResult.results.map((result) => (
+                  <div className="lesson-check-question" key={result.check.id}>
+                    <strong>{result.check.prompt}</strong>
+                    <div className="choice-row">
+                      {orderChoices(result.check.id, result.check.choices).map(
+                        (choice) => (
+                          <button
+                            className={
+                              result.selectedChoiceId === choice.id ? 'selected' : ''
+                            }
+                            disabled={!lessonTryItPassed}
+                            key={choice.id}
+                            onClick={() =>
+                              setLessonCheckAnswers((currentAnswers) => ({
+                                ...currentAnswers,
+                                [`${activeSet.conceptId}:${result.check.id}`]:
+                                  choice.id,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {choice.label}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                    {result.selectedChoiceId ? (
+                      <p
+                        className={
+                          result.correct ? 'choice-feedback correct' : 'choice-feedback'
+                        }
+                      >
+                        {result.correct
+                          ? result.check.correctFeedback
+                          : result.check.incorrectFeedback}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+                <button
+                  className="primary"
+                  disabled={!lessonTryItPassed || !lessonCheckResult.passed}
+                  onClick={handleMarkLessonRead}
+                  type="button"
+                >
+                  <CheckCircle2 size={17} />
+                  Unlock problem set
+                </button>
+              </section>
+            </>
+          ) : (
+            <div className="lesson-complete-banner">
+              <CheckCircle2 size={18} />
+              <div>
+                <strong>Lecture and readiness work complete</strong>
+                <p>The problem set below now applies this same reasoning.</p>
+              </div>
+            </div>
+          )}
+        </section>
+
         <section className="panel diagnostic-panel">
           <div className="panel-heading">
             <div>
@@ -352,7 +622,7 @@ const App = () => {
                   <span>{getConcept(question.conceptId).shortTitle}</span>
                   <strong>{question.prompt}</strong>
                   <div className="choice-row">
-                    {question.choices.map((choice) => (
+                    {orderChoices(question.id, question.choices).map((choice) => (
                       <button
                         className={selected === choice.id ? 'selected' : ''}
                         key={choice.id}
@@ -453,104 +723,16 @@ const App = () => {
             </div>
 
             {!lessonRead ? (
-              <div className="lesson-card">
-                <div className="problem-meta">
-                  <span>{activeConcept.shortTitle}</span>
-                  <span>Lesson before practice</span>
-                  <span>{activeProgress.percent}% set complete</span>
+              <div className="practice-locked">
+                <BookOpen size={22} />
+                <div>
+                  <p className="eyebrow">Practice locked</p>
+                  <h3>Finish the learning sequence above</h3>
+                  <p>
+                    The try-it problem and concept checks make sure the problem set
+                    starts with enough understanding to be useful.
+                  </p>
                 </div>
-                <div className="lesson-intro">
-                  <BookOpen size={24} />
-                  <div>
-                    <p className="eyebrow">Theory first</p>
-                    <h3>{activeLesson.bigIdea}</h3>
-                    <p>{activeLesson.whyItMatters}</p>
-                  </div>
-                </div>
-                <div className="definition-grid">
-                  {activeLesson.definitions.map((definition) => (
-                    <div key={definition.term}>
-                      <strong>{definition.term}</strong>
-                      <p>{definition.meaning}</p>
-                    </div>
-                  ))}
-                </div>
-                <section className="lesson-section">
-                  <h4>Core Theory</h4>
-                  <ul>
-                    {activeLesson.theory.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="worked-example">
-                  <h4>Worked Example</h4>
-                  <strong>{activeLesson.workedExample.prompt}</strong>
-                  <ol>
-                    {activeLesson.workedExample.steps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                  <p>{activeLesson.workedExample.takeaway}</p>
-                </section>
-                <section className="readiness-check">
-                  <h4>Before You Practice</h4>
-                  <ul>
-                    {activeLesson.readinessChecks.map((check) => (
-                      <li key={check}>{check}</li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="lesson-check-panel">
-                  <h4>Check Your Understanding</h4>
-                  {lessonCheckResult.results.map((result) => (
-                    <div className="lesson-check-question" key={result.check.id}>
-                      <strong>{result.check.prompt}</strong>
-                      <div className="choice-row">
-                        {result.check.choices.map((choice) => (
-                          <button
-                            className={
-                              result.selectedChoiceId === choice.id ? 'selected' : ''
-                            }
-                            key={choice.id}
-                            onClick={() =>
-                              setLessonCheckAnswers((currentAnswers) => ({
-                                ...currentAnswers,
-                                [`${activeSet.conceptId}:${result.check.id}`]:
-                                  choice.id,
-                              }))
-                            }
-                            type="button"
-                          >
-                            {choice.label}
-                          </button>
-                        ))}
-                      </div>
-                      {result.selectedChoiceId ? (
-                        <p
-                          className={
-                            result.correct
-                              ? 'choice-feedback correct'
-                              : 'choice-feedback'
-                          }
-                        >
-                          {result.correct
-                            ? result.check.correctFeedback
-                            : result.check.incorrectFeedback}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </section>
-                <button
-                  className="primary"
-                  disabled={!lessonCheckResult.passed}
-                  onClick={handleMarkLessonRead}
-                  type="button"
-                >
-                  <CheckCircle2 size={17} />
-                  Start problem set
-                </button>
               </div>
             ) : (
               <div className="problem-card">
@@ -570,6 +752,11 @@ const App = () => {
                   ) : null}
                 </div>
                 <h3>{activeProblem.prompt}</h3>
+                <div className="problem-recall">
+                  <strong>Bring this idea from the lecture</strong>
+                  <p>{activeLesson.theory[0]}</p>
+                  <span>What your work should show: {activeProblem.checksFor}</span>
+                </div>
                 <section className="work-step-panel">
                   <div className="work-step-heading">
                     <div>
@@ -731,8 +918,15 @@ const App = () => {
                         <li key={step.id}>
                           <strong>{step.title}</strong>
                           <p>{step.coachPrompt}</p>
-                          <span>{step.support}</span>
-                          <div>
+                          <div className="guide-support">
+                            <b>What to use</b>
+                            <span>{step.support}</span>
+                          </div>
+                          <div className="guide-why">
+                            <b>Why this step</b>
+                            <span>{step.why}</span>
+                          </div>
+                          <div className="guide-reveal">
                             <b>Reveal</b>
                             <span>{step.reveal}</span>
                           </div>

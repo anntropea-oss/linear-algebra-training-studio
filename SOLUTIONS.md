@@ -693,3 +693,19 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh pr checks 23` returned `no checks reported on the 'codex/la-studio-brand' branch`.
+
+## [2026-06-22 11:05] Lesson Flow Was Too Thin And Answer Position Was Predictable
+- Problem: Lesson checks placed the correct answer first nearly every time; instruction appeared below the placement diagnostic; each concept had only one short worked example; learners lacked a supported try-it exercise; active problems did not restate enough relevant theory; and guided steps said what to do without clearly explaining why the next move followed.
+- Root Cause: The lesson model supported only definitions, three theory bullets, one worked example, and multiple-choice checks whose data consistently used choice `a` as correct. The lesson was rendered inside the locked problem panel rather than as the first main learning surface, and guided solution steps had no rationale field.
+- Solution: Added stable varied choice ordering, a top-of-page three-part lecture, two concept-specific worked examples with step rationales, a gated free-response try-it exercise, lecture recall inside active problems, and explicit `why` explanations for every guided solution step. Correct try-it work is recorded as the first solved item when the problem set unlocks.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/App.tsx`, `src/App.css`, `test/mathAnswer.test.ts`, `README.md`, `docs/PEDAGOGY_NOTES.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 31 tests, including answer-position distribution, full lesson structure for every concept, separate supplemental examples, and guided-step rationale coverage; `npm run build`, `npm run lint`, and `git diff --check` pass.
+
+## [2026-06-22 11:05] Managed Environment Blocked Local Browser Preview
+- Problem: The managed sandbox denied the Vite server bind with `listen EPERM`, the escalated server request did not start, and the in-app browser security policy blocked direct navigation to the local `file://` production bundle.
+- Root Cause: The current environment restricts local port binding and Browser Use blocks file URLs by policy.
+- Solution: Completed source-order, unit, TypeScript, production-build, lint, and diff verification; deferred rendered-page verification to the public HTTPS deployment after merge.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: The local server command reported `listen EPERM: operation not permitted 127.0.0.1:5173`; Browser Use rejected the file URL; all non-browser verification commands passed.

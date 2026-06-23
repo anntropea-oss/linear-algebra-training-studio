@@ -7,6 +7,7 @@ The rebuilt app focuses on real-time learning, not after-the-fact reporting.
 - Start from the learner's actual entry point.
 - Teach the concept before asking the learner to perform it.
 - Use definitions, intuition, and worked examples before independent practice.
+- Put the current concept lecture before diagnostics, paths, and problem controls in the page flow.
 - Diagnose the learner before trusting their self-placement.
 - Require short checks for understanding before unlocking practice.
 - Make partial work visible and useful.
@@ -43,6 +44,7 @@ When a learner asks for help, the tutor should:
 - orient the learner to the task
 - ask for the first setup move
 - reveal one step at a time
+- explain why each revealed step is mathematically useful
 - preserve the learner's work area
 - record guided steps used on submission
 
@@ -53,11 +55,13 @@ Each concept begins with:
 - a big idea in plain language
 - why the concept matters
 - essential definitions
-- core theory statements
-- a worked example
-- readiness checks before the answer box appears
+- a three-part lecture that connects the mental model, method, and next-step choice
+- two worked examples with an explicit rationale for every step
+- a free-response try-it problem that records the learner's first solved item
+- lesson checks with deterministic but varied answer positions
+- readiness checks before the problem workspace appears
 
-Practice is intentionally gated until the lesson is marked complete. This does not prove mastery, but it prevents the app from treating linear algebra as only a problem generator.
+Practice is intentionally gated until the try-it problem and lesson checks are complete. This does not prove mastery, but it requires retrieval and application before the app treats the learner as ready for an active set.
 
 ## Diagnostic Placement
 
@@ -84,4 +88,4 @@ The course map now includes the topics a first serious linear algebra course exp
 - Problem variants that adapt difficulty within a session.
 - Learner-data calibration of step-rubric weights, partial thresholds, and transfer-problem rubrics.
 - A backend AI layer that can explain verified steps without inventing math.
-- More robust lesson sequencing with short checks for understanding before unlocking practice.
+- Instructor review and learner-data calibration of lecture length, example difficulty, and try-it transfer quality.

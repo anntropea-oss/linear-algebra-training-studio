@@ -4,17 +4,72 @@ import { describe, it } from 'node:test'
 import { evaluateMathAnswer } from '../src/domain/mathAnswer.js'
 import {
   addProblemSet,
+  concepts,
+  createGuidedSolution,
   createLearnerProfile,
+  diagnosticQuestions,
   evaluateResponse,
   evaluateWorkSteps,
+  getLesson,
+  getLessonChecks,
   getRubricCalibrationCases,
   getRubricCalibrationSummary,
   getProblem,
+  orderChoices,
   problemBank,
   submitResponse,
 } from '../src/domain/tutorEngine.js'
 
 describe('evaluateMathAnswer', () => {
+  it('varies correct-answer positions without changing question identity', () => {
+    const questions = [
+      ...diagnosticQuestions,
+      ...concepts.flatMap((concept) => getLessonChecks(concept.id)),
+    ]
+    const correctPositions = questions.map((question) =>
+      orderChoices(question.id, question.choices).findIndex(
+        (choice) => choice.id === question.correctChoiceId,
+      ),
+    )
+
+    assert.deepEqual(
+      orderChoices(questions[0].id, questions[0].choices),
+      orderChoices(questions[0].id, questions[0].choices),
+    )
+    assert.ok(new Set(correctPositions).size >= 3)
+    assert.ok(correctPositions.some((position) => position > 0))
+  })
+
+  it('builds a full learn-example-try sequence for every concept', () => {
+    concepts.forEach((concept) => {
+      const lesson = getLesson(concept.id)
+
+      assert.equal(lesson.lecture.length, 3)
+      assert.equal(lesson.workedExamples.length, 2)
+      assert.ok(lesson.workedExamples.every((example) => example.steps.length > 0))
+      assert.ok(
+        lesson.workedExamples.every((example) =>
+          example.steps.every((step) => step.why.trim().length > 0),
+        ),
+      )
+      assert.equal(lesson.tryIt.conceptId, concept.id)
+      assert.ok(lesson.tryIt.prompt.length > 0)
+      assert.ok(problemBank.some((problem) => problem.id === lesson.tryIt.id))
+      assert.ok(
+        !problemBank.some(
+          (problem) => problem.prompt === lesson.workedExamples[1].prompt,
+        ),
+      )
+    })
+  })
+
+  it('explains why each guided solution step is useful', () => {
+    const guide = createGuidedSolution(getProblem('vec-1'), '', 10)
+
+    assert.ok(guide.steps.length > 0)
+    assert.ok(guide.steps.every((step) => step.why.trim().length > 0))
+  })
+
   it('accepts equivalent numeric forms', () => {
     assert.equal(
       evaluateMathAnswer('det = 12 - 2 = 10', {

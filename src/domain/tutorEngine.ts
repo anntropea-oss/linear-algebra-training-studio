@@ -53,6 +53,30 @@ export type ConceptLesson = {
   readinessChecks: string[]
 }
 
+export type LectureSection = {
+  title: string
+  explanation: string
+  connection: string
+}
+
+export type LessonExampleStep = {
+  action: string
+  why: string
+}
+
+export type LessonExample = {
+  title: string
+  prompt: string
+  steps: LessonExampleStep[]
+  takeaway: string
+}
+
+export type ExpandedConceptLesson = ConceptLesson & {
+  lecture: LectureSection[]
+  workedExamples: LessonExample[]
+  tryIt: Problem
+}
+
 export type LessonCheckQuestion = {
   id: string
   conceptId: ConceptId
@@ -237,6 +261,7 @@ export type GuidedSolutionStep = {
   title: string
   coachPrompt: string
   support: string
+  why: string
   reveal: string
   check: string
 }
@@ -1067,6 +1092,156 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
       'Can you name the three subspace proof checks?',
       'Can you explain why one counterexample disproves a universal claim?',
     ],
+  },
+}
+
+const supplementalExampleLibrary: Record<
+  ConceptId,
+  ConceptLesson['workedExample']
+> = {
+  vectors: {
+    prompt: 'Compute 2(1, -1) + 3(0, 2).',
+    steps: [
+      'Scale each vector: 2(1, -1) = (2, -2) and 3(0, 2) = (0, 6).',
+      'Add matching coordinates: (2 + 0, -2 + 6).',
+      'The result is (2, 4).',
+    ],
+    takeaway: 'Scaling happens before coordinate-by-coordinate addition.',
+  },
+  span: {
+    prompt: 'Can (1, 1) and (1, -1) build (4, 2)?',
+    steps: [
+      'Write a(1, 1) + b(1, -1) = (4, 2).',
+      'Match coordinates: a + b = 4 and a - b = 2.',
+      'Solving gives a = 3 and b = 1, so the target is in the span.',
+    ],
+    takeaway: 'A target is in a span when its coordinate equations have a solution.',
+  },
+  systems: {
+    prompt: 'Solve x + 2y = 7 and x - y = 1.',
+    steps: [
+      'Subtract the second equation from the first to eliminate x.',
+      'This gives 3y = 6, so y = 2.',
+      'Substitute into x - y = 1 to get x = 3.',
+    ],
+    takeaway: 'Choose an elimination that removes one variable cleanly.',
+  },
+  'row-reduction': {
+    prompt: 'Reduce the augmented rows [1, 2, 5] and [0, 1, 2].',
+    steps: [
+      'Use the second-row pivot to clear the 2 above it.',
+      'Apply R1 <- R1 - 2R2, producing [1, 0, 1].',
+      'The reduced system gives x = 1 and y = 2.',
+    ],
+    takeaway: 'Pivot rows are used to clear other entries in their columns.',
+  },
+  'matrix-transformations': {
+    prompt: 'Apply [[1, 2], [0, 1]] to (3, 1).',
+    steps: [
+      'Compute the first output coordinate: 1(3) + 2(1) = 5.',
+      'Compute the second output coordinate: 0(3) + 1(1) = 1.',
+      'The output is (5, 1).',
+    ],
+    takeaway: 'Each output coordinate is a row-by-vector dot product.',
+  },
+  determinants: {
+    prompt: 'Find det([[1, 3], [2, 5]]).',
+    steps: [
+      'Identify a = 1, b = 3, c = 2, and d = 5.',
+      'Use ad - bc: 1(5) - 3(2).',
+      'The determinant is -1.',
+    ],
+    takeaway: 'The order ad - bc controls both magnitude and sign.',
+  },
+  inverses: {
+    prompt: 'The matrix diag(2, 4) sends (3, 2) to (6, 8). How does its inverse undo that?',
+    steps: [
+      'The inverse of diag(2, 4) is diag(1/2, 1/4).',
+      'Apply it to (6, 8): ((1/2)6, (1/4)8).',
+      'The original vector (3, 2) is recovered.',
+    ],
+    takeaway: 'An inverse reverses each independent scaling factor.',
+  },
+  subspaces: {
+    prompt: 'Why is the x-axis W = {(x, 0)} a subspace of R2?',
+    steps: [
+      'The zero vector (0, 0) is in W.',
+      'Adding (a, 0) and (b, 0) gives (a + b, 0), which stays in W.',
+      'Scaling (a, 0) gives (ca, 0), which also stays in W.',
+    ],
+    takeaway: 'Zero and both closure tests establish a subspace.',
+  },
+  'fundamental-subspaces': {
+    prompt: 'Find the null space direction of A = [[1, 1], [0, 0]].',
+    steps: [
+      'Solve Ax = 0, which gives x1 + x2 = 0.',
+      'Let x2 = t, so x1 = -t.',
+      'Every null vector is t(-1, 1).',
+    ],
+    takeaway: 'A free variable becomes a direction in the null space.',
+  },
+  'rank-nullity': {
+    prompt: 'A matrix has 4 columns and 3 pivots. What is its nullity?',
+    steps: [
+      'The input dimension is the number of columns, so n = 4.',
+      'The number of pivots is the rank, so rank = 3.',
+      'Rank + nullity = 4 gives nullity = 1.',
+    ],
+    takeaway: 'Rank-nullity divides input dimensions into pivots and free directions.',
+  },
+  orthogonality: {
+    prompt: 'Project (3, 1) onto the x-axis.',
+    steps: [
+      'Use the x-axis direction u = (1, 0).',
+      'The projection coefficient is ((3, 1) dot u)/(u dot u) = 3.',
+      'The projection is 3u = (3, 0).',
+    ],
+    takeaway: 'Projection keeps the component parallel to the chosen direction.',
+  },
+  'least-squares': {
+    prompt: 'Approximate b = (2, 3) by a vector on the x-axis.',
+    steps: [
+      'Project b onto the x-axis to get the approximation (2, 0).',
+      'Compute the residual: (2, 3) - (2, 0) = (0, 3).',
+      'The residual is perpendicular to the x-axis.',
+    ],
+    takeaway: 'The closest approximation leaves an orthogonal residual.',
+  },
+  eigenvalues: {
+    prompt: 'Find the eigenvalues associated with e1 and e2 for diag(2, -1).',
+    steps: [
+      'The matrix sends e1 to 2e1.',
+      'It sends e2 to -e2.',
+      'The corresponding eigenvalues are 2 and -1.',
+    ],
+    takeaway: 'A diagonal matrix displays its eigenvalue scalings directly.',
+  },
+  'change-of-basis': {
+    prompt: 'Find the coordinates of (4, 2) in the basis {(1, 1), (1, -1)}.',
+    steps: [
+      'Write a(1, 1) + b(1, -1) = (4, 2).',
+      'Match coordinates: a + b = 4 and a - b = 2.',
+      'Solve to get [x]B = (3, 1).',
+    ],
+    takeaway: 'Basis coordinates are the weights used to rebuild the vector.',
+  },
+  diagonalization: {
+    prompt: 'Compute D^4 when D = diag(2, 3).',
+    steps: [
+      'Powers of a diagonal matrix act on each diagonal entry separately.',
+      'Compute 2^4 = 16 and 3^4 = 81.',
+      'Therefore D^4 = diag(16, 81).',
+    ],
+    takeaway: 'Diagonal form turns repeated matrix multiplication into scalar powers.',
+  },
+  'proof-techniques': {
+    prompt: 'Prove W = {(x, y): y = 2x} is closed under scalar multiplication.',
+    steps: [
+      'Take an arbitrary (x, 2x) in W and an arbitrary scalar c.',
+      'Scale it to get (cx, 2cx).',
+      'The new second coordinate is still twice the first, so the result remains in W.',
+    ],
+    takeaway: 'A closure proof starts with arbitrary allowed inputs, not one example.',
   },
 }
 
@@ -3265,6 +3440,80 @@ export const problemBank: Problem[] = baseProblemBank.map((problem) => ({
 const byConcept = (conceptId: ConceptId) =>
   problemBank.filter((problem) => problem.conceptId === conceptId && !problem.repairOnly)
 
+const explainExampleStep = (index: number, total: number) => {
+  if (index === 0) {
+    return 'This translates the prompt into a mathematical form we can act on instead of guessing from the wording.'
+  }
+  if (index === total - 1) {
+    return 'This returns to the original question, so the calculation becomes an answer with a clear mathematical meaning.'
+  }
+  return 'This changes one piece at a time while preserving the same mathematical relationship, which makes errors easier to catch.'
+}
+
+const expandLesson = (lesson: ConceptLesson): ExpandedConceptLesson => {
+  const candidates = byConcept(lesson.conceptId)
+  const tryIt = candidates[0] ?? problemBank[0]
+  const supplementalExample = supplementalExampleLibrary[lesson.conceptId]
+  const commonRisk = tryIt.mistakePatterns[0]
+
+  return {
+    ...lesson,
+    lecture: [
+      {
+        title: 'Build the mental model',
+        explanation: lesson.bigIdea,
+        connection: lesson.whyItMatters,
+      },
+      {
+        title: 'How the method works',
+        explanation: `${lesson.theory[0]} ${lesson.theory[1] ?? ''}`.trim(),
+        connection: lesson.theory[2] ?? lesson.readinessChecks[0],
+      },
+      {
+        title: 'How to choose the next step',
+        explanation: commonRisk
+          ? `${commonRisk.feedback} The next useful move is: ${commonRisk.repair}`
+          : lesson.readinessChecks.join(' '),
+        connection: `A strong solution should demonstrate: ${tryIt.checksFor}`,
+      },
+    ],
+    workedExamples: [
+      {
+        title: 'Worked example 1: See the structure',
+        prompt: lesson.workedExample.prompt,
+        steps: lesson.workedExample.steps.map((action, index) => ({
+          action,
+          why: explainExampleStep(index, lesson.workedExample.steps.length),
+        })),
+        takeaway: lesson.workedExample.takeaway,
+      },
+      {
+        title: 'Worked example 2: Apply the method',
+        prompt: supplementalExample.prompt,
+        steps: supplementalExample.steps.map((action, index) => ({
+          action,
+          why: explainExampleStep(index, supplementalExample.steps.length),
+        })),
+        takeaway: supplementalExample.takeaway,
+      },
+    ],
+    tryIt,
+  }
+}
+
+export const orderChoices = <Choice extends { id: string }>(
+  questionId: string,
+  choices: readonly Choice[],
+): Choice[] => {
+  if (choices.length < 2) return [...choices]
+  const seed = [...questionId].reduce(
+    (total, character, index) => total + character.charCodeAt(0) * (index + 1),
+    0,
+  )
+  const offset = seed % choices.length
+  return [...choices.slice(offset), ...choices.slice(0, offset)]
+}
+
 const normalize = (value: string) =>
   value
     .toLowerCase()
@@ -3284,8 +3533,8 @@ const nowIso = () => new Date().toISOString()
 export const getConcept = (conceptId: ConceptId) =>
   concepts.find((concept) => concept.id === conceptId) ?? concepts[0]
 
-export const getLesson = (conceptId: ConceptId) =>
-  lessonLibrary[conceptId] ?? lessonLibrary.vectors
+export const getLesson = (conceptId: ConceptId): ExpandedConceptLesson =>
+  expandLesson(lessonLibrary[conceptId] ?? lessonLibrary.vectors)
 
 export const getLessonChecks = (conceptId: ConceptId) =>
   lessonCheckLibrary[conceptId] ?? lessonCheckLibrary.vectors
@@ -4329,6 +4578,7 @@ export const createGuidedSolution = (
       title: 'Orient',
       coachPrompt: 'What is the problem asking you to find or decide?',
       support: problemStartPrompt(problem),
+      why: 'Naming the exact goal keeps the calculation tied to the question and helps you choose the right definition or formula.',
       reveal: problem.hint,
       check: `Your setup should show: ${problem.checksFor}`,
     },
@@ -4337,6 +4587,9 @@ export const createGuidedSolution = (
       title: 'Set up',
       coachPrompt: 'What equation, definition, or test should start the work?',
       support: problem.deeperHint,
+      why:
+        problem.stepRubric?.[0]?.detail ??
+        'A correct setup converts the prompt into a form where each later move has a mathematical reason.',
       reveal: solutionSteps[0],
       check: 'Pause here and write the setup in your own words.',
     },
@@ -4345,6 +4598,9 @@ export const createGuidedSolution = (
       title: `Work step ${index + 1}`,
       coachPrompt: 'Use the previous line to make the next small move.',
       support: solutionSteps[index],
+      why:
+        problem.stepRubric?.[index + 1]?.detail ??
+        'This follows from the previous line while preserving the same mathematical relationship.',
       reveal: step,
       check:
         index === solutionSteps.length - 2
@@ -4356,6 +4612,7 @@ export const createGuidedSolution = (
       title: 'Check',
       coachPrompt: 'How do you know the answer actually solves the problem?',
       support: `A complete response should match the target idea: ${problem.checksFor}`,
+      why: 'Checking against the original prompt catches arithmetic that looks plausible but answers a different question.',
       reveal: `One accepted form is: ${problem.accepted[0]}`,
       check: 'Submit only after your answer explains the result, not just the final value.',
     },
