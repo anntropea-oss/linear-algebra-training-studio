@@ -711,9 +711,9 @@
 - Verification: The local server command reported `listen EPERM: operation not permitted 127.0.0.1:5173`; Browser Use rejected the file URL; all non-browser verification commands passed.
 
 ## [2026-06-23 09:00] Pages Deploy Still Reports Node 20 Action Annotation
-- Problem: The GitHub Pages deployment for commit `cb7d9f2` succeeded, but GitHub Actions still reported an annotation that a nested artifact action targets Node.js 20 while being forced to Node.js 24.
-- Root Cause: `actions/upload-pages-artifact@v4` still invokes `actions/upload-artifact` code that GitHub identifies as Node 20-based, even with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` set in the workflow environment.
-- Solution: Logged the deployment annotation as a follow-up risk; no code change was applied because the deployment completed successfully and the public demo URL served the new bundle.
+- Problem: The GitHub Pages deployments for commits `cb7d9f2` and `784fc47` succeeded, but GitHub Actions still reported annotations that Pages-related actions target Node.js 20 while being forced to Node.js 24.
+- Root Cause: `actions/upload-pages-artifact@v4` invokes `actions/upload-artifact` code that GitHub identifies as Node 20-based, and `actions/deploy-pages@v4` is also reported as Node 20-based, even with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` set in the workflow environment.
+- Solution: Logged the deployment annotations as a follow-up risk; no workflow change was applied because both deployments completed successfully and the public demo URL served the new bundle.
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
-- Verification: `gh run watch 28027901367 --exit-status` completed successfully and showed the Node 20 annotation; `curl -fsSL https://anntropea-oss.github.io/linear-algebra-training-studio/` returned the deployed L.A. Studio HTML bundle.
+- Verification: `gh run watch 28027901367 --exit-status` and `gh run watch 28028343039 --exit-status` completed successfully and showed the Node 20 annotations; `curl -fsSL https://anntropea-oss.github.io/linear-algebra-training-studio/` returned the deployed L.A. Studio HTML bundle.
