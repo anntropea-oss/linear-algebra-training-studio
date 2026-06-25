@@ -6,12 +6,13 @@ Status: current app
 
 - Learner chooses a starting point.
 - Learner completes a short diagnostic placement check.
+- Learner moves through focused Learn, Practice, and Progress workspaces.
 - Learner reads a three-part concept lecture at the top of the page.
 - Learner studies two worked examples with explicit step rationales.
 - Learner solves a free-response try-it problem before lesson checks unlock.
 - Learner passes lesson checks with varied answer positions.
 - App creates active problem sets.
-- Learner works problems in real time.
+- Learner works problems in free-work mode or guided-step mode.
 - Live coach detects partial progress and common mistakes.
 - AI-style guide reveals solution steps progressively when the learner is stuck.
 - Submissions update mastery, confidence, support used, attempts, activity, and repair queue.

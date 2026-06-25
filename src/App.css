@@ -262,6 +262,29 @@
   font-size: 1.45rem;
 }
 
+.workspace-tabs,
+.solve-mode-switch {
+  background: rgba(255, 253, 246, 0.9);
+  border: 1px solid var(--la-border);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+}
+
+.workspace-tabs button,
+.solve-mode-switch button {
+  flex: 1 1 150px;
+}
+
+.workspace-tabs button.active,
+.solve-mode-switch button.active {
+  background: var(--la-aqua-soft);
+  border-color: var(--la-aqua);
+  box-shadow: inset 0 -3px 0 var(--la-pink);
+}
+
 .lesson-stage {
   background: rgba(255, 253, 246, 0.96);
   border-bottom: 3px solid var(--la-pink);
@@ -479,6 +502,12 @@
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.progress-support-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .diagnostic-panel {
@@ -725,6 +754,10 @@ textarea {
 .work-step-panel {
   display: grid;
   gap: 10px;
+}
+
+.scratchpad-panel textarea {
+  min-height: 220px;
 }
 
 .work-step-heading {
@@ -1026,7 +1059,8 @@ button:disabled {
   }
 
   .main-grid,
-  .bottom-grid {
+  .bottom-grid,
+  .progress-support-grid {
     grid-template-columns: 1fr;
   }
 }

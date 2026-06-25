@@ -7,10 +7,11 @@ The rebuilt app focuses on real-time learning, not after-the-fact reporting.
 - Start from the learner's actual entry point.
 - Teach the concept before asking the learner to perform it.
 - Use definitions, intuition, and worked examples before independent practice.
-- Put the current concept lecture before diagnostics, paths, and problem controls in the page flow.
+- Keep Learn, Practice, and Progress cognitively separate so the learner knows where to focus.
 - Diagnose the learner before trusting their self-placement.
 - Require short checks for understanding before unlocking practice.
 - Make partial work visible and useful.
+- Let learners choose free work when they do not need step scaffolding.
 - Give feedback before the learner submits.
 - Reveal help progressively when the learner does not know how to begin.
 - Separate arithmetic slips from conceptual misunderstandings.
@@ -48,6 +49,8 @@ When a learner asks for help, the tutor should:
 - preserve the learner's work area
 - record guided steps used on submission
 
+Guided support should be optional during practice. Some learners need the step rubric as a scaffold; others need open space to reason privately and submit a final answer. Free-work mode should preserve the live answer coach without treating an empty step path as a mistake.
+
 ## Lesson Before Practice
 
 Each concept begins with:
@@ -62,6 +65,8 @@ Each concept begins with:
 - readiness checks before the problem workspace appears
 
 Practice is intentionally gated until the try-it problem and lesson checks are complete. This does not prove mastery, but it requires retrieval and application before the app treats the learner as ready for an active set.
+
+After practice unlocks, the problem workspace should stay visually narrow: active set controls, one problem, one final answer path, and only the coaches relevant to the selected solve mode. Diagnostics, repair queue, prerequisites, attempts, and activity history belong in Progress.
 
 ## Diagnostic Placement
 

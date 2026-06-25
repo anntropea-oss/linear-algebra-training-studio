@@ -717,3 +717,19 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Open
 - Verification: `gh run watch 28027901367 --exit-status` and `gh run watch 28028343039 --exit-status` completed successfully and showed the Node 20 annotations; `curl -fsSL https://anntropea-oss.github.io/linear-algebra-training-studio/` returned the deployed L.A. Studio HTML bundle.
+
+## [2026-06-25 09:00] Single-Page Tutor Felt Unfocused And Step Work Was Forced
+- Problem: The app rendered lesson content, diagnostic placement, path information, active practice, coach panels, prerequisites, repair queue, recent attempts, and activity history in one long workspace, making it hard for learners to know where to focus. The practice UI also always showed step-by-step work fields, even for learners who wanted open work space and a final-answer submission.
+- Root Cause: The main app shell treated every major learning surface as part of one page and had only one practice mode, so progress tools and scaffolding competed with the current learning task.
+- Solution: Added focused Learn, Practice, and Progress workspaces; moved diagnostic, prerequisites, repairs, attempts, and activity into Progress; kept Practice focused on the active problem and relevant coaches; added Free work and Guided steps modes so learners can use an ungraded scratchpad or opt into rubric-scored step feedback.
+- Files Changed: `src/App.tsx`, `src/App.css`, `README.md`, `docs/PEDAGOGY_NOTES.md`, `docs/PRODUCT_BLUEPRINT.md`, `docs/MVP_ROADMAP.md`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 31 tests; `npm run build`, `npm run build:pages`, `npm run lint`, and `git diff --check` pass.
+
+## [2026-06-25 09:00] Sandboxed Local Preview Could Not Bind Or Route Normally
+- Problem: Starting the Vite dev server inside the managed sandbox failed with `listen EPERM`, and the in-app browser timed out when navigating to the elevated local server. A sandboxed `curl` also could not connect to the elevated server namespace.
+- Root Cause: The current managed environment restricts local port binding and separates sandboxed network access from the approved elevated dev server process.
+- Solution: Started the Vite dev server with approved elevated permissions and verified the local URL with an elevated `curl` request.
+- Files Changed: `SOLUTIONS.md`
+- Status: Workaround
+- Verification: Sandboxed `npm run dev -- --host 127.0.0.1` failed with `listen EPERM`; elevated `npm run dev -- --host 127.0.0.1` reported Vite ready at `http://127.0.0.1:5173/`; elevated `curl -fsSL http://127.0.0.1:5173/` returned the L.A. Studio HTML.

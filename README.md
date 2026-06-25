@@ -27,13 +27,14 @@ Deployment details are in [GitHub Pages Deployment](docs/GITHUB_PAGES_DEPLOYMENT
 
 - Choose a starting point: brand new, systems, matrices, or advanced review.
 - Complete a short diagnostic placement check to refine the starting point.
+- Move between focused Learn, Practice, and Progress workspaces instead of one crowded page.
 - Start with a full concept lecture at the top of the learning page.
 - Study definitions and two worked examples with a reason for every step.
 - Solve a free-response try-it problem before the lesson checks unlock.
 - Answer lesson checks with stable, varied choice order before opening the active problem set.
 - Work active problem sets in the browser.
 - Get live coaching as you type.
-- Enter step-by-step work and get step-level feedback.
+- Choose free-work mode for an ungraded scratchpad or guided-step mode for step-level feedback.
 - Grade multi-step work with concept-specific weighted step rubrics.
 - Distinguish almost-complete work from wrong-direction work.
 - Validate rubric behavior with sample student responses for every problem.

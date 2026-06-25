@@ -7,9 +7,12 @@ import {
   Brain,
   CheckCircle2,
   CircleDot,
+  ClipboardList,
   Flame,
+  GraduationCap,
   Lightbulb,
   ListChecks,
+  PenLine,
   Plus,
   RefreshCcw,
   RotateCcw,
@@ -47,6 +50,9 @@ import { loadProfile, resetProfile, saveProfile } from './domain/storage'
 type MeterStyle = CSSProperties & {
   '--value': string
 }
+
+type WorkspaceView = 'learn' | 'practice' | 'progress'
+type SolveMode = 'free' | 'guided'
 
 const startOptions: Array<{
   id: ConceptId
@@ -96,8 +102,11 @@ const App = () => {
   const [selectedSetId, setSelectedSetId] = useState<string | undefined>(
     profile.problemSets[0]?.id,
   )
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('learn')
+  const [solveMode, setSolveMode] = useState<SolveMode>('free')
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [workStepDrafts, setWorkStepDrafts] = useState<Record<string, string[]>>({})
+  const [scratchDrafts, setScratchDrafts] = useState<Record<string, string>>({})
   const [hintLevels, setHintLevels] = useState<Record<string, number>>({})
   const [guideLevels, setGuideLevels] = useState<Record<string, number>>({})
   const [diagnosticResponses, setDiagnosticResponses] = useState<Record<string, string>>(
@@ -179,6 +188,7 @@ const App = () => {
     setSelectedSetId(nextProfile.problemSets[0]?.id)
     setDrafts({})
     setWorkStepDrafts({})
+    setScratchDrafts({})
     setHintLevels({})
     setGuideLevels({})
     setDiagnosticResponses(nextProfile.diagnostic?.responses ?? {})
@@ -186,6 +196,7 @@ const App = () => {
     setLessonTryItDrafts({})
     setLessonTryItChecks({})
     setLessonTryItHints({})
+    setWorkspaceView('learn')
   }
 
   const handleAddSet = (mode: SetMode) => {
@@ -203,7 +214,7 @@ const App = () => {
       {
         hintsUsed: hintLevel,
         guideStepsUsed: guideLevel,
-        workSteps: currentWorkSteps,
+        workSteps: solveMode === 'guided' ? currentWorkSteps : [],
       },
     )
     const nextSet = getActiveSet(nextProfile, activeSet.id)
@@ -216,6 +227,10 @@ const App = () => {
     setWorkStepDrafts((currentDrafts) => ({
       ...currentDrafts,
       [activeProblem.id]: [],
+    }))
+    setScratchDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [activeProblem.id]: '',
     }))
     setHintLevels((currentLevels) => ({
       ...currentLevels,
@@ -255,6 +270,7 @@ const App = () => {
         lessonCheckResponses,
       ),
     )
+    setWorkspaceView('practice')
   }
 
   const handleDiagnosticSubmit = () => {
@@ -265,12 +281,14 @@ const App = () => {
     setSelectedSetId(nextProfile.problemSets[0]?.id)
     setDrafts({})
     setWorkStepDrafts({})
+    setScratchDrafts({})
     setHintLevels({})
     setGuideLevels({})
     setLessonCheckAnswers({})
     setLessonTryItDrafts({})
     setLessonTryItChecks({})
     setLessonTryItHints({})
+    setWorkspaceView('learn')
   }
 
   return (
@@ -366,6 +384,34 @@ const App = () => {
           </div>
         </header>
 
+        <nav className="workspace-tabs" aria-label="Workspace sections">
+          <button
+            className={workspaceView === 'learn' ? 'active' : ''}
+            onClick={() => setWorkspaceView('learn')}
+            type="button"
+          >
+            <GraduationCap size={17} />
+            Learn
+          </button>
+          <button
+            className={workspaceView === 'practice' ? 'active' : ''}
+            onClick={() => setWorkspaceView('practice')}
+            type="button"
+          >
+            <PenLine size={17} />
+            Practice
+          </button>
+          <button
+            className={workspaceView === 'progress' ? 'active' : ''}
+            onClick={() => setWorkspaceView('progress')}
+            type="button"
+          >
+            <ClipboardList size={17} />
+            Progress
+          </button>
+        </nav>
+
+        {workspaceView === 'learn' ? (
         <section className="lesson-stage">
           <div className="lesson-stage-heading">
             <div>
@@ -600,7 +646,10 @@ const App = () => {
             </div>
           )}
         </section>
+        ) : null}
 
+        {workspaceView === 'progress' ? (
+        <>
         <section className="panel diagnostic-panel">
           <div className="panel-heading">
             <div>
@@ -677,6 +726,119 @@ const App = () => {
           ))}
         </section>
 
+        <section className="progress-support-grid">
+          <section className="panel prerequisite-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Prerequisites</p>
+                <h2>
+                  {prerequisiteStatus.length ? 'Readiness map' : 'Foundation concept'}
+                </h2>
+              </div>
+              <Target size={18} />
+            </div>
+            {prerequisiteStatus.length ? (
+              <div className="prerequisite-list">
+                {prerequisiteStatus.map((status) => (
+                  <div
+                    className={status.ready ? 'ready' : 'needs-work'}
+                    key={status.conceptId}
+                  >
+                    <strong>{status.title}</strong>
+                    <span>{status.mastery}% mastery</span>
+                    <span>
+                      {status.lessonComplete ? 'lesson complete' : 'lesson needed'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">This is the first layer of the course.</p>
+            )}
+          </section>
+
+          <section className="panel repair-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Repair queue</p>
+                <h2>{nextRepair ? nextRepair.label : 'Clear'}</h2>
+              </div>
+              <TriangleAlert size={18} />
+            </div>
+            {nextRepair ? (
+              <div className="repair-card">
+                <p>{nextRepair.feedback}</p>
+                {nextRepair.evidence ? (
+                  <span>
+                    Evidence: {nextRepair.source === 'work-step' ? 'step ' : ''}
+                    {nextRepair.source === 'work-step' && nextRepair.stepIndex !== undefined
+                      ? `${nextRepair.stepIndex + 1}: `
+                      : ''}
+                    {nextRepair.evidence}
+                  </span>
+                ) : null}
+                <strong>{nextRepair.repair}</strong>
+                <button onClick={() => handleAddSet('repair')} type="button">
+                  <RotateCcw size={17} />
+                  Create targeted repair
+                </button>
+                <button
+                  onClick={() => setProfile(resolveMistake(profile, nextRepair.id))}
+                  type="button"
+                >
+                  Mark repaired
+                </button>
+              </div>
+            ) : (
+              <p className="muted">No open repairs. Keep going.</p>
+            )}
+          </section>
+        </section>
+
+        <section className="bottom-grid">
+          <article className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Recent attempts</p>
+                <h2>Learning evidence</h2>
+              </div>
+              <Activity size={18} />
+            </div>
+            <div className="attempt-list">
+              {profile.attempts.slice(0, 5).map((attempt) => (
+                <div className="attempt-row" key={attempt.id}>
+                  <span>{attempt.score}/5</span>
+                  <div>
+                    <strong>{getConcept(attempt.conceptId).shortTitle}</strong>
+                    <p>{attempt.feedback}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Activity</p>
+                <h2>Session record</h2>
+              </div>
+            </div>
+            <div className="activity-list">
+              {profile.activity.slice(0, 6).map((entry) => (
+                <div key={entry.id}>
+                  <strong>{entry.title}</strong>
+                  <p>{entry.detail}</p>
+                  <span>{formatTime(entry.createdAt)}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+        </>
+        ) : null}
+
+        {workspaceView === 'practice' ? (
         <section className="main-grid">
           <article className="panel problem-panel">
             <div className="panel-heading">
@@ -757,48 +919,83 @@ const App = () => {
                   <p>{activeLesson.theory[0]}</p>
                   <span>What your work should show: {activeProblem.checksFor}</span>
                 </div>
-                <section className="work-step-panel">
-                  <div className="work-step-heading">
-                    <div>
-                      <p className="eyebrow">Work path</p>
-                      <h4>{workStepReport.headline}</h4>
+                <div className="solve-mode-switch" aria-label="Problem solving mode">
+                  <button
+                    className={solveMode === 'free' ? 'active' : ''}
+                    onClick={() => setSolveMode('free')}
+                    type="button"
+                  >
+                    <PenLine size={17} />
+                    Free work
+                  </button>
+                  <button
+                    className={solveMode === 'guided' ? 'active' : ''}
+                    onClick={() => setSolveMode('guided')}
+                    type="button"
+                  >
+                    <ListChecks size={17} />
+                    Guided steps
+                  </button>
+                </div>
+                {solveMode === 'guided' ? (
+                  <section className="work-step-panel">
+                    <div className="work-step-heading">
+                      <div>
+                        <p className="eyebrow">Work path</p>
+                        <h4>{workStepReport.headline}</h4>
+                      </div>
+                      <span>
+                        {workStepReport.onTrack}/{workStepReport.total}
+                      </span>
                     </div>
-                    <span>
-                      {workStepReport.onTrack}/{workStepReport.total}
-                    </span>
-                  </div>
-                  <div className="work-step-list">
-                    {workStepReport.feedback.map((step) => (
-                      <label
-                        className={`work-step-row ${step.status}`}
-                        key={`${activeProblem.id}-step-${step.index}`}
-                      >
-                        <span className="work-step-number">{step.index + 1}</span>
-                        <textarea
-                          aria-label={`Work step ${step.index + 1}`}
-                          className="work-step-input"
-                          onChange={(event) =>
-                            setWorkStepDrafts((currentDrafts) => {
-                              const existing =
-                                currentDrafts[activeProblem.id] ??
-                                currentProgress?.workSteps ??
-                                []
-                              const nextSteps = [...existing]
-                              nextSteps[step.index] = event.target.value
-                              return {
-                                ...currentDrafts,
-                                [activeProblem.id]: nextSteps,
-                              }
-                            })
-                          }
-                          placeholder={`Step ${step.index + 1}`}
-                          value={currentWorkSteps[step.index] ?? ''}
-                        />
-                        <span className="work-step-feedback">{step.detail}</span>
-                      </label>
-                    ))}
-                  </div>
-                </section>
+                    <div className="work-step-list">
+                      {workStepReport.feedback.map((step) => (
+                        <label
+                          className={`work-step-row ${step.status}`}
+                          key={`${activeProblem.id}-step-${step.index}`}
+                        >
+                          <span className="work-step-number">{step.index + 1}</span>
+                          <textarea
+                            aria-label={`Work step ${step.index + 1}`}
+                            className="work-step-input"
+                            onChange={(event) =>
+                              setWorkStepDrafts((currentDrafts) => {
+                                const existing =
+                                  currentDrafts[activeProblem.id] ??
+                                  currentProgress?.workSteps ??
+                                  []
+                                const nextSteps = [...existing]
+                                nextSteps[step.index] = event.target.value
+                                return {
+                                  ...currentDrafts,
+                                  [activeProblem.id]: nextSteps,
+                                }
+                              })
+                            }
+                            placeholder={`Step ${step.index + 1}`}
+                            value={currentWorkSteps[step.index] ?? ''}
+                          />
+                          <span className="work-step-feedback">{step.detail}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                ) : (
+                  <label className="answer-field scratchpad-panel">
+                    <span>Scratchpad</span>
+                    <textarea
+                      aria-label="Scratchpad"
+                      onChange={(event) =>
+                        setScratchDrafts((currentDrafts) => ({
+                          ...currentDrafts,
+                          [activeProblem.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Work freely here"
+                      value={scratchDrafts[activeProblem.id] ?? ''}
+                    />
+                  </label>
+                )}
                 <label className="answer-field">
                   <span>Final answer</span>
                   <textarea
@@ -877,28 +1074,48 @@ const App = () => {
                   </div>
                 </section>
 
-                <section className="panel coach-panel working">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="eyebrow">Step coach</p>
-                      <h2>{workStepReport.headline}</h2>
-                    </div>
-                    <ListChecks size={18} />
-                  </div>
-                  <p>{workStepReport.detail}</p>
-                  <div className="next-action">
-                    <strong>Next step</strong>
-                    <span>{workStepReport.nextAction}</span>
-                  </div>
-                  <div className="step-feedback-list">
-                    {workStepReport.feedback.map((step) => (
-                      <div className={step.status} key={`${step.index}-${step.status}`}>
-                        <strong>Step {step.index + 1}</strong>
-                        <span>{step.status.replace('-', ' ')}</span>
+                {solveMode === 'guided' ? (
+                  <section className="panel coach-panel working">
+                    <div className="panel-heading">
+                      <div>
+                        <p className="eyebrow">Step coach</p>
+                        <h2>{workStepReport.headline}</h2>
                       </div>
-                    ))}
-                  </div>
-                </section>
+                      <ListChecks size={18} />
+                    </div>
+                    <p>{workStepReport.detail}</p>
+                    <div className="next-action">
+                      <strong>Next step</strong>
+                      <span>{workStepReport.nextAction}</span>
+                    </div>
+                    <div className="step-feedback-list">
+                      {workStepReport.feedback.map((step) => (
+                        <div className={step.status} key={`${step.index}-${step.status}`}>
+                          <strong>Step {step.index + 1}</strong>
+                          <span>{step.status.replace('-', ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ) : (
+                  <section className="panel coach-panel working">
+                    <div className="panel-heading">
+                      <div>
+                        <p className="eyebrow">Solve mode</p>
+                        <h2>Free workspace</h2>
+                      </div>
+                      <PenLine size={18} />
+                    </div>
+                    <p>
+                      Your scratchpad stays ungraded; the coach evaluates the final
+                      answer when you are ready.
+                    </p>
+                    <div className="next-action">
+                      <strong>Next move</strong>
+                      <span>{liveFeedback.nextAction}</span>
+                    </div>
+                  </section>
+                )}
 
                 <section className="panel solution-panel guide-panel">
                   <div className="panel-heading">
@@ -986,115 +1203,9 @@ const App = () => {
               </>
             )}
 
-            <section className="panel prerequisite-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Prerequisites</p>
-                  <h2>
-                    {prerequisiteStatus.length ? 'Readiness map' : 'Foundation concept'}
-                  </h2>
-                </div>
-                <Target size={18} />
-              </div>
-              {prerequisiteStatus.length ? (
-                <div className="prerequisite-list">
-                  {prerequisiteStatus.map((status) => (
-                    <div
-                      className={status.ready ? 'ready' : 'needs-work'}
-                      key={status.conceptId}
-                    >
-                      <strong>{status.title}</strong>
-                      <span>{status.mastery}% mastery</span>
-                      <span>
-                        {status.lessonComplete ? 'lesson complete' : 'lesson needed'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="muted">This is the first layer of the course.</p>
-              )}
-            </section>
-
-            <section className="panel repair-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Repair queue</p>
-                  <h2>{nextRepair ? nextRepair.label : 'Clear'}</h2>
-                </div>
-                <TriangleAlert size={18} />
-              </div>
-              {nextRepair ? (
-                <div className="repair-card">
-                  <p>{nextRepair.feedback}</p>
-                  {nextRepair.evidence ? (
-                    <span>
-                      Evidence: {nextRepair.source === 'work-step' ? 'step ' : ''}
-                      {nextRepair.source === 'work-step' && nextRepair.stepIndex !== undefined
-                        ? `${nextRepair.stepIndex + 1}: `
-                        : ''}
-                      {nextRepair.evidence}
-                    </span>
-                  ) : null}
-                  <strong>{nextRepair.repair}</strong>
-                  <button onClick={() => handleAddSet('repair')} type="button">
-                    <RotateCcw size={17} />
-                    Create targeted repair
-                  </button>
-                  <button
-                    onClick={() => setProfile(resolveMistake(profile, nextRepair.id))}
-                    type="button"
-                  >
-                    Mark repaired
-                  </button>
-                </div>
-              ) : (
-                <p className="muted">No open repairs. Keep going.</p>
-              )}
-            </section>
           </aside>
         </section>
-
-        <section className="bottom-grid">
-          <article className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Recent attempts</p>
-                <h2>Learning evidence</h2>
-              </div>
-              <Activity size={18} />
-            </div>
-            <div className="attempt-list">
-              {profile.attempts.slice(0, 5).map((attempt) => (
-                <div className="attempt-row" key={attempt.id}>
-                  <span>{attempt.score}/5</span>
-                  <div>
-                    <strong>{getConcept(attempt.conceptId).shortTitle}</strong>
-                    <p>{attempt.feedback}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Activity</p>
-                <h2>Session record</h2>
-              </div>
-            </div>
-            <div className="activity-list">
-              {profile.activity.slice(0, 6).map((entry) => (
-                <div key={entry.id}>
-                  <strong>{entry.title}</strong>
-                  <p>{entry.detail}</p>
-                  <span>{formatTime(entry.createdAt)}</span>
-                </div>
-              ))}
-            </div>
-          </article>
-        </section>
+        ) : null}
       </main>
     </div>
   )
