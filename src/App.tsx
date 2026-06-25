@@ -29,6 +29,7 @@ import {
   diagnosticQuestions,
   evaluateLessonChecks,
   evaluateResponse,
+  evaluateTryItResponse,
   evaluateWorkSteps,
   getActiveSet,
   getConcept,
@@ -145,7 +146,10 @@ const App = () => {
   const lessonRead = Boolean(profile.lessonReads?.[activeSet.conceptId])
   const lessonTryItDraft = lessonTryItDrafts[activeSet.conceptId] ?? ''
   const lessonTryItChecked = lessonTryItChecks[activeSet.conceptId] ?? false
-  const lessonTryItFeedback = evaluateResponse(activeLesson.tryIt, lessonTryItDraft)
+  const lessonTryItFeedback = evaluateTryItResponse(
+    activeLesson.tryIt,
+    lessonTryItDraft,
+  )
   const lessonTryItPassed =
     lessonTryItChecked && lessonTryItFeedback.tone === 'correct'
   const diagnosticComplete = diagnosticQuestions.every(
@@ -261,6 +265,9 @@ const App = () => {
           activeSet.id,
           activeLesson.tryIt.id,
           lessonTryItDraft,
+          {
+            workSteps: [lessonTryItDraft],
+          },
         )
       : profile
     setProfile(

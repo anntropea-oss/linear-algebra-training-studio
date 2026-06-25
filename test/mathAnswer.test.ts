@@ -9,6 +9,7 @@ import {
   createLearnerProfile,
   diagnosticQuestions,
   evaluateResponse,
+  evaluateTryItResponse,
   evaluateWorkSteps,
   getLesson,
   getLessonChecks,
@@ -89,6 +90,29 @@ describe('evaluateMathAnswer', () => {
       }).status,
       'correct',
     )
+  })
+
+  it('finds a later correct vector answer instead of the first prompt coordinates', () => {
+    assert.equal(
+      evaluateMathAnswer('a(1, 2) and b(3, 1), so a = 3.4 and b = 1.2', {
+        kind: 'vector',
+        labels: ['a', 'b'],
+        values: [17 / 5, 6 / 5],
+      }).status,
+      'correct',
+    )
+  })
+
+  it('accepts correct try-it setup equations as lesson readiness evidence', () => {
+    const feedback = evaluateTryItResponse(
+      getProblem('vec-1'),
+      `a(1, 2) = (a, 2a) and b(3, 1) = (3b, b)
+      (a+3b, 2a+b)
+      a+3b=7 and 2a+b=8`,
+    )
+
+    assert.equal(feedback.tone, 'correct')
+    assert.equal(feedback.headline, 'That setup is correct')
   })
 
   it('accepts fraction vector coordinates', () => {

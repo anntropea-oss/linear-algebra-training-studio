@@ -4188,6 +4188,28 @@ export const evaluateWorkSteps = (
   }
 }
 
+export const evaluateTryItResponse = (problem: Problem, response: string): LiveFeedback => {
+  const finalAnswerFeedback = evaluateResponse(problem, response)
+  if (finalAnswerFeedback.tone === 'correct') {
+    return finalAnswerFeedback
+  }
+
+  const setupReport = evaluateWorkSteps(problem, [response])
+  if (setupReport.feedback[0]?.status === 'on-track') {
+    return {
+      tone: 'correct',
+      headline: 'That setup is correct',
+      detail:
+        'You translated the vector problem into the right coordinate equations. That is enough evidence to continue.',
+      nextAction: 'Continue to the concept checks, then use this setup in the problem set.',
+      score: 4,
+      matchedAccepted: true,
+    }
+  }
+
+  return finalAnswerFeedback
+}
+
 const evidenceSampleText = (rubric: StepRubric, throughGroupIndex: number) =>
   rubric.evidence
     .slice(0, throughGroupIndex + 1)

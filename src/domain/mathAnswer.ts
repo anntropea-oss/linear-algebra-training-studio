@@ -104,16 +104,22 @@ const parseVectorCandidates = (response: string, expectedSize: number) => {
   return candidates
 }
 
-const parseVector = (response: string, spec: Extract<MathAnswerSpec, { kind: 'vector' }>) => {
+const parseVectorAnswers = (
+  response: string,
+  spec: Extract<MathAnswerSpec, { kind: 'vector' }>,
+) => {
   const labels = spec.labels?.map((label) => label.toLowerCase())
+  const candidates: number[][] = []
   if (labels?.length) {
     const assignments = parseAssignments(response)
     if (labels.every((label) => assignments.has(label))) {
-      return labels.map((label) => assignments.get(label) as number)
+      candidates.push(labels.map((label) => assignments.get(label) as number))
     }
   }
 
-  return parseVectorCandidates(response, spec.values.length)[0]
+  candidates.push(...parseVectorCandidates(response, spec.values.length))
+
+  return candidates
 }
 
 const chunkMatrix = (values: number[], rows: number, columns: number) => {
@@ -180,22 +186,26 @@ const evaluateVectorAnswer = (
   response: string,
   spec: Extract<MathAnswerSpec, { kind: 'vector' }>,
 ): MathAnswerEvaluation => {
-  const parsed = parseVector(response, spec)
-  if (!parsed) {
+  const parsedCandidates = parseVectorAnswers(response, spec)
+  if (!parsedCandidates.length) {
     return {
       status: 'unreadable',
       detail: `I am looking for ${spec.values.length} coordinate values.`,
     }
   }
 
-  if (sameNumberList(parsed, spec.values, spec.tolerance)) {
+  const matched = parsedCandidates.find((candidate) =>
+    sameNumberList(candidate, spec.values, spec.tolerance),
+  )
+  if (matched) {
     return {
       status: 'correct',
-      detail: `I read ${formatVector(parsed)}, which matches coordinate by coordinate.`,
-      parsed: formatVector(parsed),
+      detail: `I read ${formatVector(matched)}, which matches coordinate by coordinate.`,
+      parsed: formatVector(matched),
     }
   }
 
+  const parsed = parsedCandidates[parsedCandidates.length - 1]
   return {
     status: parsed.length === spec.values.length ? 'partial' : 'incorrect',
     detail: `I read ${formatVector(parsed)}, but one or more coordinates differ from ${formatVector(

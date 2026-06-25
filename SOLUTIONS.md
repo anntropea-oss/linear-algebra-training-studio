@@ -733,3 +733,11 @@
 - Files Changed: `SOLUTIONS.md`
 - Status: Workaround
 - Verification: Sandboxed `npm run dev -- --host 127.0.0.1` failed with `listen EPERM`; elevated `npm run dev -- --host 127.0.0.1` reported Vite ready at `http://127.0.0.1:5173/`; elevated `curl -fsSL http://127.0.0.1:5173/` returned the L.A. Studio HTML.
+
+## [2026-06-25 09:44] Try-It Setup Was Marked Partial Because Prompt Coordinates Were Parsed As The Answer
+- Problem: In the vector try-it problem, a correct setup such as `a + 3b = 7 and 2a + b = 8` was marked as only partial. The feedback said it read `(1, 2)` because the parser grabbed the first coordinate pair from the learner's reasoning instead of recognizing the coordinate equations as valid setup evidence.
+- Root Cause: Vector answer parsing returned the first coordinate-sized group it found, which could be a prompt vector copied into the reasoning. The lesson try-it gate also used final-answer evaluation only, even though the field asks for an answer or reasoning.
+- Solution: Updated vector parsing to evaluate all plausible vector candidates and accept any candidate that matches the expected answer. Added a try-it-specific evaluator that accepts a correct first-step setup from the problem rubric as lesson-readiness evidence, and wired the lesson UI to use that evaluator.
+- Files Changed: `src/domain/mathAnswer.ts`, `src/domain/tutorEngine.ts`, `src/App.tsx`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 33 tests, including regression coverage for later correct vector answers and screenshot-style setup equations; `npm run build` and `npm run lint` pass.
