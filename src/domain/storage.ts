@@ -1,4 +1,8 @@
-import { concepts, createLearnerProfile } from './tutorEngine'
+import {
+  concepts,
+  createLearnerProfile,
+  repairAdaptiveSetConceptDrift,
+} from './tutorEngine'
 import type { ConceptId, LearnerProfile, ProblemProgress } from './tutorEngine'
 
 const STORAGE_KEY = 'linear-algebra-live-tutor:v1'
@@ -9,7 +13,7 @@ const canStore = () =>
 const normalizeProfile = (profile: LearnerProfile): LearnerProfile => {
   const fallback = createLearnerProfile(profile.startingPoint ?? 'vectors', profile.name)
 
-  return {
+  return repairAdaptiveSetConceptDrift({
     ...profile,
     mastery: Object.fromEntries(
       concepts.map((concept) => [
@@ -48,7 +52,7 @@ const normalizeProfile = (profile: LearnerProfile): LearnerProfile => {
       hintsUsed: attempt.hintsUsed ?? 0,
       guideStepsUsed: attempt.guideStepsUsed ?? 0,
     })),
-  }
+  })
 }
 
 export const loadProfile = (): LearnerProfile => {

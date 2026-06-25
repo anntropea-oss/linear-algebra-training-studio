@@ -18,6 +18,7 @@ import {
   getProblem,
   orderChoices,
   problemBank,
+  repairAdaptiveSetConceptDrift,
   submitResponse,
 } from '../src/domain/tutorEngine.js'
 
@@ -345,6 +346,55 @@ describe('evaluateMathAnswer', () => {
     )
 
     assert.equal(activeSet.problemIds.some((problemId) => repairVariantIds.has(problemId)), false)
+  })
+
+  it('keeps ordinary adaptive sets inside the selected concept', () => {
+    const profile = createLearnerProfile('vectors')
+    const activeSet = profile.problemSets[0]
+
+    assert.equal(activeSet.title, 'Vectors adaptive set')
+    assert.ok(activeSet.problemIds.length > 0)
+    assert.ok(
+      activeSet.problemIds.every(
+        (problemId) => getProblem(problemId).conceptId === activeSet.conceptId,
+      ),
+    )
+  })
+
+  it('repairs stored adaptive sets that drifted into another concept', () => {
+    const profile = createLearnerProfile('vectors')
+    const activeSet = profile.problemSets[0]
+    const driftedProfile = {
+      ...profile,
+      problemSets: [
+        {
+          ...activeSet,
+          problemIds: ['vec-1', 'span-1', 'vec-2'],
+          progress: {
+            ...activeSet.progress,
+            'span-1': {
+              problemId: 'span-1',
+              status: 'ready' as const,
+              response: '',
+              workSteps: [],
+              score: 0,
+              hintsUsed: 0,
+              guideStepsUsed: 0,
+            },
+          },
+        },
+      ],
+    }
+    const repairedProfile = repairAdaptiveSetConceptDrift(driftedProfile)
+    const repairedSet = repairedProfile.problemSets[0]
+
+    assert.equal(repairedSet.title, 'Vectors adaptive set')
+    assert.equal(repairedSet.problemIds.includes('span-1'), false)
+    assert.ok(
+      repairedSet.problemIds.every(
+        (problemId) => getProblem(problemId).conceptId === repairedSet.conceptId,
+      ),
+    )
   })
 
   it('prioritizes matching repair-only variants in targeted repair sets', () => {

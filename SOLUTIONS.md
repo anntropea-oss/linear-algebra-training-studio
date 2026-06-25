@@ -741,3 +741,11 @@
 - Files Changed: `src/domain/mathAnswer.ts`, `src/domain/tutorEngine.ts`, `src/App.tsx`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test` passes 33 tests, including regression coverage for later correct vector answers and screenshot-style setup equations; `npm run build` and `npm run lint` pass.
+
+## [2026-06-25 10:09] Vector Adaptive Set Included Span Problems
+- Problem: The Vectors adaptive set could contain Span problems, so the selected set title and the active problem concept did not match. The screenshot showed `Vectors adaptive set` while the active problem card was tagged `Span`.
+- Root Cause: Ordinary adaptive set generation appended the lowest-mastery review concept after the current concept problems. For new learners, that review concept could be Span, which leaked Span problems into a Vector-focused set. Existing browser-stored sets could also keep the mixed problem list after the generator was fixed.
+- Solution: Limited ordinary adaptive sets to problems from the selected concept only. Added a profile-load repair step that removes off-concept problems from stored adaptive sets and fills them with same-concept problems, preserving existing progress for retained items.
+- Files Changed: `src/domain/tutorEngine.ts`, `src/domain/storage.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 35 tests, including regression coverage for concept-specific adaptive sets and stored-set repair; `npm run build` and `npm run lint` pass.

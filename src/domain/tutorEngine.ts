@@ -4346,6 +4346,31 @@ const nextOpenRepair = (profile: LearnerProfile) =>
 const problemMatchesMisconception = (problem: Problem, misconceptionId: string) =>
   problem.mistakePatterns.some((mistake) => mistake.id === misconceptionId)
 
+const readyProgress = (problemId: string): ProblemProgress => ({
+  problemId,
+  status: 'ready',
+  response: '',
+  workSteps: [],
+  score: 0,
+  hintsUsed: 0,
+  guideStepsUsed: 0,
+})
+
+const progressForProblemIds = (
+  problemIds: string[],
+  existingProgress: Record<string, ProblemProgress> = {},
+) =>
+  Object.fromEntries(
+    problemIds.map((problemId) => [
+      problemId,
+      {
+        ...readyProgress(problemId),
+        ...existingProgress[problemId],
+        problemId,
+      },
+    ]),
+  )
+
 export const createProblemSet = (
   profile: LearnerProfile,
   mode: SetMode = 'adaptive',
@@ -4398,7 +4423,7 @@ export const createProblemSet = (
         ]
       : mode === 'challenge'
         ? [...conceptProblems.filter((problem) => problem.difficulty >= 2), ...reviewProblems]
-        : [...conceptProblems, ...reviewProblems, ...prerequisiteProblems]
+        : conceptProblems
   const uniqueProblems = Array.from(new Map(source.map((problem) => [problem.id, problem])).values())
     .slice(0, 5)
   const createdAt = nowIso()
@@ -4421,22 +4446,41 @@ export const createProblemSet = (
     createdAt,
     status: 'active',
     problemIds: uniqueProblems.map((problem) => problem.id),
-    progress: Object.fromEntries(
-      uniqueProblems.map((problem) => [
-        problem.id,
-        {
-          problemId: problem.id,
-          status: 'ready' as ProblemStatus,
-          response: '',
-          workSteps: [],
-          score: 0,
-          hintsUsed: 0,
-          guideStepsUsed: 0,
-        },
-      ]),
-    ),
+    progress: progressForProblemIds(uniqueProblems.map((problem) => problem.id)),
   }
 }
+
+const repairAdaptiveProblemSetConceptDrift = (set: ProblemSet): ProblemSet => {
+  if (set.mode !== 'adaptive') return set
+
+  const conceptProblemIds = byConcept(set.conceptId).map((problem) => problem.id)
+  const conceptProblemIdSet = new Set(conceptProblemIds)
+  const retainedProblemIds = set.problemIds.filter((problemId) =>
+    conceptProblemIdSet.has(problemId),
+  )
+  const repairedProblemIds = [
+    ...retainedProblemIds,
+    ...conceptProblemIds.filter((problemId) => !retainedProblemIds.includes(problemId)),
+  ].slice(0, 5)
+  const progress = progressForProblemIds(repairedProblemIds, set.progress)
+  const answeredCount = repairedProblemIds.filter(
+    (problemId) => progress[problemId]?.status === 'answered',
+  ).length
+
+  return {
+    ...set,
+    title: `${getConcept(set.conceptId).shortTitle} adaptive set`,
+    problemIds: repairedProblemIds,
+    progress,
+    status:
+      answeredCount === repairedProblemIds.length ? ('completed' as ProblemSetStatus) : 'active',
+  }
+}
+
+export const repairAdaptiveSetConceptDrift = (profile: LearnerProfile): LearnerProfile => ({
+  ...profile,
+  problemSets: profile.problemSets.map(repairAdaptiveProblemSetConceptDrift),
+})
 
 export const createLearnerProfile = (
   startingPoint: ConceptId = 'vectors',
