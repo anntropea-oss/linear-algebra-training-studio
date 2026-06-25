@@ -65,6 +65,24 @@ describe('evaluateMathAnswer', () => {
     })
   })
 
+  it('gives span learners explicit reasoning about reachability and redundancy', () => {
+    const lesson = getLesson('span')
+    const exampleText = lesson.workedExamples
+      .flatMap((example) => [
+        example.prompt,
+        example.takeaway,
+        ...example.steps.flatMap((step) => [step.action, step.why]),
+      ])
+      .join(' ')
+      .toLowerCase()
+
+    assert.match(exampleText, /reach/)
+    assert.match(exampleText, /same line|one line/)
+    assert.match(exampleText, /redundant|does not create a new direction/)
+    assert.match(exampleText, /coordinate/)
+    assert.match(exampleText, /solution|weights/)
+  })
+
   it('explains why each guided solution step is useful', () => {
     const guide = createGuidedSolution(getProblem('vec-1'), '', 10)
 

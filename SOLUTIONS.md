@@ -749,3 +749,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `src/domain/storage.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test` passes 35 tests, including regression coverage for concept-specific adaptive sets and stored-set repair; `npm run build` and `npm run lint` pass.
+
+## [2026-06-25 10:28] Span Lesson Worked Examples Were Too Thin
+- Problem: The Span and linear independence learn-first section did not give enough explanation in the "Watch the reasoning" examples, making it unclear why scalar multiples only span a line and how coordinate equations prove a target is in a span.
+- Root Cause: The Span lesson used short worked-example steps and generic generated step rationales. The examples named the conclusion but did not explicitly connect reachability, redundant directions, scalar multiples, coordinate equations, and span membership.
+- Solution: Rewrote the Span definitions, theory bullets, and both worked examples to explain reachability, one-direction versus two-direction span in R2, redundancy, coordinate matching, solving for weights, and why those steps answer the prompt. Added Span-specific "Why this step" rationale text.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 36 tests, including regression coverage that Span worked examples mention reachability, one-line span, redundancy, coordinate reasoning, and weights/solutions; `npm run build` and `npm run lint` pass.

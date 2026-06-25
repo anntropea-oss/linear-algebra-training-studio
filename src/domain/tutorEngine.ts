@@ -517,28 +517,33 @@ export const lessonLibrary: Record<ConceptId, ConceptLesson> = {
     definitions: [
       {
         term: 'Span',
-        meaning: 'The full collection of vectors reachable by linear combinations.',
+        meaning:
+          'All vectors you can reach by scaling the given vectors and adding the results.',
       },
       {
         term: 'Linear independence',
-        meaning: 'No vector in the set can be built from the others.',
+        meaning:
+          'No vector in the set is redundant; none can be built from the others.',
       },
       {
         term: 'Dependence',
-        meaning: 'At least one vector repeats information already supplied by the others.',
+        meaning:
+          'At least one vector repeats a direction or combination already supplied by the others.',
       },
     ],
     theory: [
-      'Two vectors in R2 span the whole plane only when they point in genuinely different directions.',
-      'Counting vectors is not enough; three vectors on the same line still span only a line.',
-      'A dependence relation means there is a nonzero way to combine the vectors and get zero.',
+      'Span asks a reachability question: using only these vectors, what points or directions can I build?',
+      'In R2, one nonzero direction spans a line; two non-parallel directions can span the whole plane.',
+      'Linear independence asks whether any vector is redundant. If one vector is a multiple or combination of the others, the set is dependent.',
     ],
     workedExample: {
       prompt: 'Do (1, 2) and (2, 4) span all of R2?',
       steps: [
-        'Notice (2, 4) = 2(1, 2).',
-        'Both vectors point along the same line.',
-        'Their combinations can move forward and backward on that line, but not off it.',
+        'Ask what directions are available, not how many vectors are listed.',
+        'Notice (2, 4) = 2(1, 2), so the second vector is just a longer copy of the first.',
+        'Any combination a(1, 2) + b(2, 4) becomes a(1, 2) + 2b(1, 2) = (a + 2b)(1, 2).',
+        'Because every result is still some multiple of (1, 2), the reachable set is one line.',
+        'R2 is the whole plane, so one line cannot cover all of R2.',
       ],
       takeaway: 'They span a line, not all of R2.',
     },
@@ -1111,9 +1116,11 @@ const supplementalExampleLibrary: Record<
   span: {
     prompt: 'Can (1, 1) and (1, -1) build (4, 2)?',
     steps: [
-      'Write a(1, 1) + b(1, -1) = (4, 2).',
-      'Match coordinates: a + b = 4 and a - b = 2.',
-      'Solving gives a = 3 and b = 1, so the target is in the span.',
+      'Translate "build (4, 2)" into a linear combination: a(1, 1) + b(1, -1) = (4, 2).',
+      'Match coordinates to get a + b = 4 and a - b = 2.',
+      'Add the equations: 2a = 6, so a = 3.',
+      'Substitute into a + b = 4, giving b = 1.',
+      'Because a = 3 and b = 1 work, (4, 2) is reachable and is in the span.',
     ],
     takeaway: 'A target is in a span when its coordinate equations have a solution.',
   },
@@ -3440,7 +3447,33 @@ export const problemBank: Problem[] = baseProblemBank.map((problem) => ({
 const byConcept = (conceptId: ConceptId) =>
   problemBank.filter((problem) => problem.conceptId === conceptId && !problem.repairOnly)
 
-const explainExampleStep = (index: number, total: number) => {
+const explainExampleStep = (
+  conceptId: ConceptId,
+  exampleIndex: number,
+  index: number,
+  total: number,
+) => {
+  if (conceptId === 'span') {
+    const spanRationales = [
+      [
+        'Span is about reachable directions. Counting vectors can fool you if several vectors point the same way.',
+        'A scalar multiple does not create a new direction; it only changes how far you travel along the old direction.',
+        'Factoring the common direction shows that every possible output is still controlled by one direction.',
+        'A single direction in R2 traces a line. It cannot move independently in both plane directions.',
+        'This connects the calculation back to the prompt: all of R2 means the whole plane, not one line inside it.',
+      ],
+      [
+        'Membership in a span means there are weights that build the target. The variables a and b stand for those weights.',
+        'Coordinate matching turns a vector question into equations we can solve.',
+        'Solving the equations tests whether the needed weights actually exist.',
+        'Substitution finishes the weights, so the proposed combination becomes concrete.',
+        'Finding valid weights proves reachability; the target is in the span because the combination exists.',
+      ],
+    ]
+
+    return spanRationales[exampleIndex]?.[index] ?? spanRationales[0][0]
+  }
+
   if (index === 0) {
     return 'This translates the prompt into a mathematical form we can act on instead of guessing from the wording.'
   }
@@ -3483,7 +3516,12 @@ const expandLesson = (lesson: ConceptLesson): ExpandedConceptLesson => {
         prompt: lesson.workedExample.prompt,
         steps: lesson.workedExample.steps.map((action, index) => ({
           action,
-          why: explainExampleStep(index, lesson.workedExample.steps.length),
+          why: explainExampleStep(
+            lesson.conceptId,
+            0,
+            index,
+            lesson.workedExample.steps.length,
+          ),
         })),
         takeaway: lesson.workedExample.takeaway,
       },
@@ -3492,7 +3530,12 @@ const expandLesson = (lesson: ConceptLesson): ExpandedConceptLesson => {
         prompt: supplementalExample.prompt,
         steps: supplementalExample.steps.map((action, index) => ({
           action,
-          why: explainExampleStep(index, supplementalExample.steps.length),
+          why: explainExampleStep(
+            lesson.conceptId,
+            1,
+            index,
+            supplementalExample.steps.length,
+          ),
         })),
         takeaway: supplementalExample.takeaway,
       },
