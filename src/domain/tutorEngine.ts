@@ -3802,6 +3802,8 @@ const evidenceChoiceMatches = (response: string, choice: string) => {
   const normalizedChoice = normalize(choice)
   const compactedResponse = compact(response)
   const compactedChoice = compact(choice)
+  const deparenthesizedResponse = compactedResponse.replace(/[()]/g, '')
+  const deparenthesizedChoice = compactedChoice.replace(/[()]/g, '')
   const singleTokenChoice = /^[a-z0-9]$/.test(normalizedChoice)
 
   if (singleTokenChoice) {
@@ -3812,7 +3814,8 @@ const evidenceChoiceMatches = (response: string, choice: string) => {
 
   return (
     normalizedResponse.includes(normalizedChoice) ||
-    compactedResponse.includes(compactedChoice)
+    compactedResponse.includes(compactedChoice) ||
+    deparenthesizedResponse.includes(deparenthesizedChoice)
   )
 }
 

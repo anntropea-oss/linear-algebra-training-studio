@@ -134,6 +134,19 @@ describe('evaluateMathAnswer', () => {
     assert.equal(feedback.headline, 'That setup is correct')
   })
 
+  it('accepts parenthesized coordinate equations as correct try-it setup', () => {
+    const response = `(a+3b) = 7 and (2a+b) = 8
+    a = 7-3b
+    b = 8-2a`
+    const feedback = evaluateTryItResponse(getProblem('vec-1'), response)
+    const stepReport = evaluateWorkSteps(getProblem('vec-1'), [response])
+
+    assert.equal(feedback.tone, 'correct')
+    assert.equal(feedback.headline, 'That setup is correct')
+    assert.equal(stepReport.feedback[0].status, 'on-track')
+    assert.equal(stepReport.misconception, undefined)
+  })
+
   it('accepts fraction vector coordinates', () => {
     assert.equal(
       evaluateMathAnswer('(5/2, 2.5)', {

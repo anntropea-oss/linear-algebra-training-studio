@@ -757,3 +757,11 @@
 - Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
 - Status: Resolved
 - Verification: `npm test` passes 36 tests, including regression coverage that Span worked examples mention reachability, one-line span, redundancy, coordinate reasoning, and weights/solutions; `npm run build` and `npm run lint` pass.
+
+## [2026-07-13 11:57] Parenthesized Try-It Setup Triggered Sign Slip
+- Problem: A correct vector try-it setup using `(a+3b) = 7`, `(2a+b) = 8`, `a = 7-3b`, and `b = 8-2a` was shown as "Sign or arithmetic slip" instead of being accepted as valid setup evidence.
+- Root Cause: Rubric evidence matching recognized compact equation text like `a+3b=7`, but harmless grouping parentheses prevented a match. After the setup rubric missed, the broader sign-slip misconception trigger could win because the learner had written `-2a`.
+- Solution: Made rubric evidence matching compare deparenthesized compact expressions in addition to normalized and compact expressions. Added a regression test using the screenshot-style response and asserting the try-it feedback stays correct with no misconception.
+- Files Changed: `src/domain/tutorEngine.ts`, `test/mathAnswer.test.ts`, `SOLUTIONS.md`
+- Status: Resolved
+- Verification: `npm test` passes 37 tests; `npm run build`, `npm run build:pages`, `npm run lint`, and `git diff --check` pass.
